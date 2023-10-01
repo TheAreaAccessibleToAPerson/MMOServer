@@ -11,7 +11,6 @@ namespace Client
             input_to(ref I_sendTCP, Header.SEND_TCP_SOCKET_EVENT, SendTCP);
             input_to(ref I_TCPMessageProcessing, Header.MESSAGE_PROCESSING_EVENT, TCPMessageProcess);
             input_to(ref I_UDPMessageProcessing, Header.MESSAGE_PROCESSING_EVENT, TCPMessageProcess);
-
             send_echo_2_0(ref I_subscribeToReceiveUDPPacket,
                 Server.ReceiveUDPPacketForClients.BUS.LE_SUBSCRIBE_CLIENT_RECEIVE_UDP_PACKET)
                     .output_to(() =>
@@ -21,8 +20,6 @@ namespace Client
 
         void Start()
         {
-            //I_subscribeToReceiveUDPPacket.To(GetID(), this);
-
             SystemInformation($"ID:{GetID()} creating.", ConsoleColor.Green);
 
             Task.Run(RequestPort);
@@ -124,9 +121,7 @@ namespace Client
                 else
                 {
 #if EXCEPTION
-                    string m = "";
-                    foreach (byte b in message) m += $"{b} ";
-                    Exception(Ex.x003, index, m);
+                    Exception(Ex.x003, index, String.Join(" ", message), ConsoleColor.Red);
 #endif
                     return new byte[0][];
                 }
@@ -136,7 +131,7 @@ namespace Client
 #if EXCEPTION
             if (messageLength < 0)
             {
-                Exception(Ex.x002, message.Length, index, messageLength);
+                Exception(Ex.x002, message.Length, index, messageLength, ConsoleColor.Red);
             }
 #endif
 
@@ -164,10 +159,7 @@ namespace Client
 #if EXCEPTION
             else
             {
-                string m = "";
-                for (int i = startIndex; i < message.Length; i++) m += $"{message[i]} ";
-
-                Exception(Ex.x001, ServiceTCPMessage.MIN_LENGTH, message.Length, m);
+                Exception(Ex.x001, ServiceTCPMessage.MIN_LENGTH, message.Length, String.Join(" ", message));
             }
 #endif
             return 0;

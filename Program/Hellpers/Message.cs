@@ -172,6 +172,11 @@ public struct ServiceTCPMessage
     /// </summary>
     public const int MIN_LENGTH = 3;
 
+    /// <summary>
+    /// Размер пакета от клинта в котором приходит порт.
+    /// </summary>
+    public const int TRANSFER_PORT_LENGTH = 3;
+
     public struct ServerToClient
     {
         /// <summary>

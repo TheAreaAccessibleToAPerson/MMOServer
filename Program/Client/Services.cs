@@ -98,13 +98,23 @@ namespace Client
 #if INFORMATION
                     Console(Message.Show("SubscribeToReceiveUDPPacket", message, 40));
 #endif
+                    if (message.Length == 3)
+                    {
+                        Console(String.Join(" ", message));
+                    }
+                    else
+                    {
+                        #if EXCEPTION
+                        #endif
 
-                    long address = ((IPEndPoint)Socket.RemoteEndPoint).Address.Address;
+                        destroy();
+                    }
+
                 }
                 catch { destroy(); }
             }
 #if EXCEPTION
-            else Exception(Ex.x005, State.WaitingPort, CurrentState);
+            else Exception(Ex.x005, State.WaitingPort, CurrentState, ConsoleColor.Red);
 #endif
         }
 
