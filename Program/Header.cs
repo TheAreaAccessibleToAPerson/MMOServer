@@ -4,8 +4,22 @@ public sealed class Header : Controller, ReadLine.IInformation
 {
     public const string WORK_WITCH_OBJECTS_EVENT = "WorkWitchObjectsEvent.";
     public const string LISTEN_CLIENTS_EVENT = "ListenClientsEvent.";
+
+    /// <summary>
+    /// Отвечает за подписку и отписку клиентов от прослушки UDP пакетов
+    /// и за прием из потока отвечающего за прослушку UDPSocket.
+    /// </summary>
     public const string UDP_WORK_EVENT = "UdpWork.";
+
+    /// <summary>
+    /// Отвечает события на котрые подпишутся клиенты для прослушивания сообщений
+    /// поступающих в TCPSocket.
+    /// </summary>
     public const string RECEIVE_TCP_SOCKET_EVENT = "Receive tcp socket.";
+
+    /// <summary>
+    /// Отвечает за отправку сообщений по TCPSocket.
+    /// </summary>
     public const string SEND_TCP_SOCKET_EVENT = "Send tcp socket.";
     public const string MESSAGE_PROCESSING_EVENT = "Message processing";
 
