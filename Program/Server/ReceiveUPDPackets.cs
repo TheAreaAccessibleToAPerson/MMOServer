@@ -207,6 +207,7 @@ namespace Server
                             do
                             {
                                 clientBytesBuffers[index] = _server.Receive(ref _remoteIpEndPoint);
+                                available -= clientBytesBuffers[index].Length;
 
                                 // Проверяем пришедшее сообщение на соответвие минимально
                                 // допустимому размеру сообщения.
@@ -236,7 +237,7 @@ namespace Server
 #endif
                                 }
                             }
-                            while ((--available) > 0);
+                            while (available > 0);
 
                             i_sendPacketsToClients.To
                                 (clientAddressBuffers, clientPortBuffers, clientBytesBuffers);
