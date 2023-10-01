@@ -3,7 +3,7 @@
 
 namespace Client
 {
-    public sealed class Main : Services, Main.IReceiveUDPPacket, Main.IReceiveRoomMessage
+    public sealed class Main : Services, Main.IReceiveRoomMessage
     {
         void Construction()
         {
@@ -11,11 +11,9 @@ namespace Client
             input_to(ref I_sendTCP, Header.SEND_TCP_SOCKET_EVENT, SendTCP);
             input_to(ref I_TCPMessageProcessing, Header.MESSAGE_PROCESSING_EVENT, TCPMessageProcess);
             input_to(ref I_UDPMessageProcessing, Header.MESSAGE_PROCESSING_EVENT, TCPMessageProcess);
-            send_echo_2_0(ref I_subscribeToReceiveUDPPacket,
+            send_echo_2_0(ref I_subscribeToReceiveUDPPacket, 
                 Server.ReceiveUDPPacketForClients.BUS.LE_SUBSCRIBE_CLIENT_RECEIVE_UDP_PACKET)
-                    .output_to(() =>
-                    {
-                    });
+                    .output_to(EndSubscribeToReceiveUDPPacket);
         }
 
         void Start()
@@ -27,7 +25,13 @@ namespace Client
 
         void Configurate()
         {
-            SetSocket();
+            try
+            {
+                TCPSocket = Field.GetStream().Socket;
+
+                RemoteIPAddress = ((System.Net.IPEndPoint)TCPSocket.RemoteEndPoint).Address;
+            }
+            catch { destroy(); }
         }
 
         void Destruction()
@@ -56,7 +60,7 @@ namespace Client
                     Console(Message.Show("SendTCP", message, 40));
 #endif
 
-                    Socket.Send(message);
+                    TCPSocket.Send(message);
                 }
                 catch { destroy(); }
             }

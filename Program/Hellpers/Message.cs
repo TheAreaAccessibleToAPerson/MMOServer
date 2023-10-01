@@ -177,6 +177,17 @@ public struct ServiceTCPMessage
     /// </summary>
     public const int TRANSFER_PORT_LENGTH = 3;
 
+    /// <summary>
+    /// Индекс на первый байт в сообщение которое содержит порт клинта 
+    /// с которого будут приходить UDP пакеты.
+    /// </summary>
+    public const int TRANSFER_PORT_INDEX_1byte = 1;
+    /// <summary>
+    /// Индекс на второй байт в сообщение которое содержит порт клинта 
+    /// с которого будут приходить UDP пакеты.
+    /// </summary>
+    public const int TRANSFER_PORT_INDEX_2byte = 2;
+
     public struct ServerToClient
     {
         /// <summary>

@@ -7,7 +7,7 @@ using Butterfly;
 
 namespace Client
 {
-    public abstract class Services : Property
+    public abstract class Services : Property, Main.IReceiveUDPPacket
     {
         protected bool IsRunning = true;
 
@@ -22,12 +22,30 @@ namespace Client
             WaitingPort = 2,
 
             // Получили порт подписываемся на получение UDP пакетов.
-            SubscribeToReceiveUDPPacket = 4
+            SubscribeToReceiveUDPPacket = 4,
+
+            // Мы подписались на получение UDP пакетов от клинта.
+            EndSubscribeToReceiveUDPPacket = 8
         }
 
         private State CurrentState = State.None;
 
-        protected Socket Socket;
+        protected Socket TCPSocket;
+
+        /// <summary>
+        /// Аддрес клиента.
+        /// </summary>
+        protected IPAddress RemoteIPAddress;
+
+        /// <summary>
+        /// UDP порт с которого будут приходить сообщения от клинта.
+        /// </summary>
+        protected int RemoteUDPPort;
+
+        /// <summary>
+        /// По данному ключу клиeнт будет подписан в прослушку UDP пакетов.
+        /// </summary>
+        private ulong SubscribeKeyToReceiveUDPPackets = 0;
 
         protected IInput<ulong, Main.IReceiveUDPPacket> I_subscribeToReceiveUDPPacket;
 
@@ -55,11 +73,11 @@ namespace Client
             {
                 try
                 {
-                    int available = Socket.Available;
+                    int available = TCPSocket.Available;
                     if (available > 0)
                     {
                         byte[] buffer = new byte[available];
-                        Socket.Receive(buffer, 0, available, SocketFlags.None, out SocketError error);
+                        TCPSocket.Receive(buffer, 0, available, SocketFlags.None, out SocketError error);
 
                         if (error == SocketError.Success)
                         {
@@ -80,11 +98,10 @@ namespace Client
         {
         }
 
-        public void ReceiveUDPPacket(byte[] packet)
+        void Main.IReceiveUDPPacket.ReceiveUDPPacket(byte[] packet)
         {
             Console(packet.Length);
         }
-
 
         /// <summary>
         /// Подписываемся на получение UDP пакетов.
@@ -98,14 +115,26 @@ namespace Client
 #if INFORMATION
                     Console(Message.Show("SubscribeToReceiveUDPPacket", message, 40));
 #endif
-                    if (message.Length == 3)
+                    if (message.Length == ServiceTCPMessage.TRANSFER_PORT_LENGTH)
                     {
+                        CurrentState = State.SubscribeToReceiveUDPPacket;
+#if INFORMATION
                         Console(String.Join(" ", message));
+#endif
+                        RemoteUDPPort = message[ServiceTCPMessage.TRANSFER_PORT_INDEX_1byte] << 8 ^
+                            message[ServiceTCPMessage.TRANSFER_PORT_INDEX_2byte];
+
+                        SubscribeKeyToReceiveUDPPackets =  
+                            (ulong)RemoteIPAddress.Address << 16 ^ 
+                            (ulong)RemoteUDPPort;
+
+                        I_subscribeToReceiveUDPPacket.To(SubscribeKeyToReceiveUDPPackets, this);
                     }
                     else
                     {
-                        #if EXCEPTION
-                        #endif
+#if EXCEPTION
+                        Exception(Ex.x006, ServiceTCPMessage.TRANSFER_PORT_LENGTH, message.Length);
+#endif
 
                         destroy();
                     }
@@ -116,6 +145,15 @@ namespace Client
 #if EXCEPTION
             else Exception(Ex.x005, State.WaitingPort, CurrentState, ConsoleColor.Red);
 #endif
+        }
+
+        /// <summary>
+        /// Мы подписались на получешние UDP пакетов от клинта по его аддрессу и порту
+        /// с которых он будет их отправлять.
+        /// </summary>
+        protected void EndSubscribeToReceiveUDPPacket()
+        {
+
         }
 
         /// <summary>
@@ -155,19 +193,6 @@ namespace Client
         }
 
 
-        #region Configurate
-
-        protected void SetSocket()
-        {
-            try
-            {
-                Socket = Field.GetStream().Socket;
-            }
-            catch { destroy(); }
-        }
-
-        #endregion
-
         protected struct Ex
         {
             public const string x001 = @"Минимально возможный размер сообщения который приходит " +
@@ -179,12 +204,12 @@ namespace Client
                 + @"указывает на позицию {1}, разность от идекса и до конца массива равна {2}.";
             public const string x003 = @"В поступающем TCP сообщении содержется заголовок отвечающий " +
                 @"за длину, которая не может быть равна нулю.Индекс начала:{0} \n Сообщение:\n{1}\n";
-
             public const string x004 = @"Вы можете запросить порт только когда состояние Services 
                 {0}, но в данный момент флаг выставлен в {1}.";
             public const string x005 = @"Подписаться на получение UDP можно лишь однажды в самом " +
                 @" начале формирования клиента когда состояние выставлено в {0}, но в данный момент оно {1}.";
-            public const string x006 = @"";
+            public const string x006 = @"Размер сообщение от клинта с UDP портом через который тот будет " +
+                @"присылать пакеты должен быть {0}, то пришел пакет размера {1}.";
             public const string x007 = @"";
             public const string x008 = @"";
             public const string x009 = @"";
