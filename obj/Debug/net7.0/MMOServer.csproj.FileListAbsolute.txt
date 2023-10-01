@@ -1,0 +1,17 @@
+/home/dmitry/MMOServer/bin/Debug/net7.0/MMOServer
+/home/dmitry/MMOServer/bin/Debug/net7.0/MMOServer.deps.json
+/home/dmitry/MMOServer/bin/Debug/net7.0/MMOServer.runtimeconfig.json
+/home/dmitry/MMOServer/bin/Debug/net7.0/MMOServer.dll
+/home/dmitry/MMOServer/bin/Debug/net7.0/MMOServer.pdb
+/home/dmitry/MMOServer/bin/Debug/net7.0/Butterfly.dll
+/home/dmitry/MMOServer/obj/Debug/net7.0/MMOServer.csproj.AssemblyReference.cache
+/home/dmitry/MMOServer/obj/Debug/net7.0/MMOServer.GeneratedMSBuildEditorConfig.editorconfig
+/home/dmitry/MMOServer/obj/Debug/net7.0/MMOServer.AssemblyInfoInputs.cache
+/home/dmitry/MMOServer/obj/Debug/net7.0/MMOServer.AssemblyInfo.cs
+/home/dmitry/MMOServer/obj/Debug/net7.0/MMOServer.csproj.CoreCompileInputs.cache
+/home/dmitry/MMOServer/obj/Debug/net7.0/MMOServer.csproj.CopyComplete
+/home/dmitry/MMOServer/obj/Debug/net7.0/MMOServer.dll
+/home/dmitry/MMOServer/obj/Debug/net7.0/refint/MMOServer.dll
+/home/dmitry/MMOServer/obj/Debug/net7.0/MMOServer.pdb
+/home/dmitry/MMOServer/obj/Debug/net7.0/MMOServer.genruntimeconfig.cache
+/home/dmitry/MMOServer/obj/Debug/net7.0/ref/MMOServer.dll

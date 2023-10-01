@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "hlsvp/PJ/C2h3IKr2Iqd6VcuuDDs8DzhfO2qCWTIdPE+BGd+LvZtmQS0OukQbaCYUvmjf83gHveIJKzqnK+RmQ==",
+  "success": true,
+  "projectFilePath": "/home/dmitry/MMOServer/MMOServer.csproj",
+  "expectedPackageFiles": [
+    "/home/dmitry/.nuget/packages/butterfly/1.8.0/butterfly.1.8.0.nupkg.sha512"
+  ],
+  "logs": []
+}

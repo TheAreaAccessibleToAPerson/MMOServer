@@ -1,0 +1,41 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v7.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v7.0": {
+      "MMOServer/1.0.0": {
+        "dependencies": {
+          "Butterfly": "1.8.0"
+        },
+        "runtime": {
+          "MMOServer.dll": {}
+        }
+      },
+      "Butterfly/1.8.0": {
+        "runtime": {
+          "lib/net7.0/Butterfly.dll": {
+            "assemblyVersion": "1.0.1.0",
+            "fileVersion": "1.0.1.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "MMOServer/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Butterfly/1.8.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-17yIxEQJq4HFXcHYwNpEyETpc0xei24ze1m8AnS/XRG/D7tbiL9n+dx/ZW419AVcPNZQsvEHEZSVhVCI8f/0Kg==",
+      "path": "butterfly/1.8.0",
+      "hashPath": "butterfly.1.8.0.nupkg.sha512"
+    }
+  }
+}
