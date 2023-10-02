@@ -18,14 +18,8 @@ namespace Client
             // Запрашиваем порт с которого клиент будет отправлять UDP пакеты.
             RequestPort = 1,
 
-            // Ожидаем пока клиент вышлет порт.
+            // Ожидаем пока клиент вышлет UDP пакет.
             WaitingPort = 2,
-
-            // Получили порт подписываемся на получение UDP пакетов.
-            SubscribeToReceiveUDPPacket = 4,
-
-            // Мы подписались на получение UDP пакетов от клинта.
-            EndSubscribeToReceiveUDPPacket = 8
         }
 
         private State CurrentState = State.None;
@@ -103,91 +97,27 @@ namespace Client
             Console(packet.Length);
         }
 
-        /// <summary>
-        /// Подписываемся на получение UDP пакетов.
-        /// </summary>
-        protected void SubscribeToReceiveUDPPacket(byte[] message)
-        {
-            if (CurrentState.HasFlag(State.WaitingPort))
-            {
-                try
-                {
-#if INFORMATION
-                    Console(Message.Show("SubscribeToReceiveUDPPacket", message, 40));
-#endif
-                    if (message.Length == ServiceTCPMessage.TRANSFER_PORT_LENGTH)
-                    {
-                        CurrentState = State.SubscribeToReceiveUDPPacket;
-#if INFORMATION
-                        Console(String.Join(" ", message));
-#endif
-                        RemoteUDPPort = message[ServiceTCPMessage.TRANSFER_PORT_INDEX_1byte] << 8 ^
-                            message[ServiceTCPMessage.TRANSFER_PORT_INDEX_2byte];
-
-                        SubscribeKeyToReceiveUDPPackets =  
-                            (ulong)RemoteIPAddress.Address << 16 ^ 
-                            (ulong)RemoteUDPPort;
-
-                        I_subscribeToReceiveUDPPacket.To(SubscribeKeyToReceiveUDPPackets, this);
-                    }
-                    else
-                    {
-#if EXCEPTION
-                        Exception(Ex.x006, ServiceTCPMessage.TRANSFER_PORT_LENGTH, message.Length);
-#endif
-
-                        destroy();
-                    }
-
-                }
-                catch { destroy(); }
-            }
-#if EXCEPTION
-            else Exception(Ex.x005, State.WaitingPort, CurrentState, ConsoleColor.Red);
-#endif
-        }
-
-        /// <summary>
-        /// Мы подписались на получешние UDP пакетов от клинта по его аддрессу и порту
-        /// с которых он будет их отправлять.
-        /// </summary>
-        protected void EndSubscribeToReceiveUDPPacket()
-        {
-
-        }
 
         /// <summary>
         /// Запрашиваем у клинта с которого тот будет отправлять UDP пакеты.
         /// </summary>
         protected async void RequestPort()
         {
+#if EXCEPTION
             if (CurrentState.HasFlag(State.None))
+#endif
             {
 #if INFORMATION
                 SystemInformation("RequestPort", ConsoleColor.Green);
 #endif
 
-                I_sendTCP.To(new byte[] { 0, 1, ServiceTCPMessage.ServerToClient.REQUEST_UDP_PORT });
+                I_sendTCP.To(new byte[] 
+                    { 
+                        0, 1, 
+                        ServiceTCPMessage.ServerToClient.SEND_ID_CLIENT_AND_REQUEST_UDP_PACKET
+                    });
 
                 CurrentState = State.WaitingPort;
-
-                /*
-                await Task.Run(() =>
-                {
-                    Task.Delay(2000);
-
-                    if (CurrentState.HasFlag(State.WaitingPort))
-                    {
-#if INFORMATION
-                        SystemInformation("RequestPort - time out.", ConsoleColor.Green);
-#endif
-
-                        I_sendTCP.To(new byte[] { 0, 1, ServiceTCPMessage.ServerToClient.TIME_OUT });
-
-                        destroy();
-                    }
-                });
-                */
             }
             else Exception(Ex.x004, State.None, CurrentState);
         }
@@ -208,11 +138,23 @@ namespace Client
                 {0}, но в данный момент флаг выставлен в {1}.";
             public const string x005 = @"Подписаться на получение UDP можно лишь однажды в самом " +
                 @" начале формирования клиента когда состояние выставлено в {0}, но в данный момент оно {1}.";
-            public const string x006 = @"Размер сообщение от клинта с UDP портом через который тот будет " +
-                @"присылать пакеты должен быть {0}, то пришел пакет размера {1}.";
+            public const string x006 = @"Когда придет ответ о том что клиент подписался на получение UDP " +
+                @"пакетов его состояние должно быть {0}, но оно {1}.";
             public const string x007 = @"";
             public const string x008 = @"";
             public const string x009 = @"";
+            public const string x010 = @"";
+            public const string x011 = @"";
+            public const string x012 = @"";
+            public const string x013 = @"";
+            public const string x014 = @"";
+            public const string x015 = @"";
+            public const string x016 = @"";
+            public const string x017 = @"";
+            public const string x018 = @"";
+            public const string x019 = @"";
+            public const string x020 = @"";
+            public const string x021 = @"";
         }
     }
 }

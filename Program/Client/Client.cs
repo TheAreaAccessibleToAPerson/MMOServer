@@ -13,7 +13,7 @@ namespace Client
             input_to(ref I_UDPMessageProcessing, Header.MESSAGE_PROCESSING_EVENT, TCPMessageProcess);
             send_echo_2_0(ref I_subscribeToReceiveUDPPacket, 
                 Server.ReceiveUDPPacketForClients.BUS.LE_SUBSCRIBE_CLIENT_RECEIVE_UDP_PACKET)
-                    .output_to(EndSubscribeToReceiveUDPPacket);
+                    .output_to(() => {});
         }
 
         void Start()
@@ -78,17 +78,17 @@ namespace Client
             {
                 if (messages[i].Length == 0) continue;
 
-                if (message[TCPMessage.TYPE_INDEX] ==
-                    ServiceTCPMessage.ClientToServer.TRANSFER_PORT)
+                //if (message[TCPHeader.TYPE_INDEX] ==
+                    //ServiceTCPMessage.ClientToServer.TRANSFER_PORT)
                 {
 #if INFORMATION
                     SystemInformation("TCPMessageProcess - TransferPort", ConsoleColor.Green);
 
-                    SubscribeToReceiveUDPPacket(messages[i]);
+                    //SubscribeToReceiveUDPPacket(messages[i]);
 #endif
                 }
 #if EXCEPTION
-                else throw new Exception(messages[TCPMessage.TYPE_INDEX].ToString());
+                //else throw new Exception(messages[TCPHeader.TYPE_INDEX].ToString());
 #endif
             }
         }
@@ -151,8 +151,8 @@ namespace Client
         {
             if ((message.Length - startIndex) >= ServiceTCPMessage.MIN_LENGTH)
             {
-                int i = message[startIndex + TCPMessage.LENGTH_INDEX_2byte] ^
-                    (message[startIndex + TCPMessage.LENGTH_INDEX_1byte] << 8);
+                int i = message[startIndex + TCPHeader.LENGTH_INDEX_2byte] ^
+                    (message[startIndex + TCPHeader.LENGTH_INDEX_1byte] << 8);
 
 #if INFORMATION
                 SystemInformation("GetTCPMessageLength:" + i);

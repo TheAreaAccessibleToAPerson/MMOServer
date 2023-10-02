@@ -199,9 +199,9 @@ namespace Server
 
                         if (available > 0)
                         {
-                            string[] clientAddressBuffers = new string[available];
-                            int[] clientPortBuffers = new int[available];
-                            byte[][] clientBytesBuffers = new byte[available][];
+                            string[] clientAddressBuffers = new string[1024];
+                            int[] clientPortBuffers = new int[1024];
+                            byte[][] clientBytesBuffers = new byte[1024][];
 
                             int index = 0;
                             do
@@ -211,31 +211,31 @@ namespace Server
 
                                 // Проверяем пришедшее сообщение на соответвие минимально
                                 // допустимому размеру сообщения.
-                                if (clientBytesBuffers.Length < UDPMessage.MIN_LENGTH)
+                                if (clientBytesBuffers.Length > UDPHeader.MIN_LENGTH)
                                 {
                                     // Проверяем пришедшее сообщение на соответвие максимально
                                     // допустимому размеру сообщения.
-                                    if (clientBytesBuffers.Length > UDPMessage.MAX_LENGTH)
+                                    if (clientBytesBuffers.Length <= UDPHeader.MAX_LENGTH)
                                     {
                                         // Получаем ip адресс клиeнта и его порт.
                                         clientAddressBuffers[index] = _remoteIpEndPoint.Address.ToString();
                                         clientPortBuffers[index] = _remoteIpEndPoint.Port;
 
-                                        index++;
+                                        if ((++index) == 1024) break;
                                     }
+#if EXCEPTION                           
                                     else
                                     {
-#if EXCEPTION                           
-                                        Exception(Ex.x02, UDPMessage.MAX_LENGTH, clientBytesBuffers.Length);
-#endif
+                                        Exception(Ex.x02, UDPHeader.MAX_LENGTH, clientBytesBuffers.Length);
                                     }
+#endif
                                 }
+#if EXCEPTION
                                 else
                                 {
-#if EXCEPTION
-                                    Exception(Ex.x01, UDPMessage.MIN_LENGTH, clientBytesBuffers.Length);
-#endif
+                                    Exception(Ex.x01, UDPHeader.MIN_LENGTH, clientBytesBuffers.Length);
                                 }
+#endif
                             }
                             while (available > 0);
 

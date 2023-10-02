@@ -1,13 +1,14 @@
 /*
-   HEADER MESSAGE 6 byte
+   HEADER MESSAGE 2 byte
 ----------------------
-   message_length
+message_type, message_length
+[11 - type 111111, 11111111 - length]
 1)[256, 256, 
+----------------------
+MESSAGE DATA 9 byte
+----------------------
      id client
 2) 256, 256, 256, 256]
-----------------------
-MESSAGE DATA 5 byte
-----------------------
    capsule count
 3)[256
    id message
@@ -26,9 +27,7 @@ MESSAGE DATA 5 byte
 
 */
 
-using System.Net.Http.Headers;
-
-public struct UDPMessage
+public struct UDPHeader
 {
     /// <summary>
     /// Максимально возможная длина сообщения.
@@ -47,6 +46,11 @@ public struct UDPMessage
     /// 4)4 байта - id сообщения.
     /// </summary>
     public const int MIN_LENGTH = 11;
+
+    /// <summary>
+    /// Тип сообщения.
+    /// </summary>
+    public const int TYPE_INDEX = 0;
 
     /// <summary>
     /// Приходящее сообщение обезательно содержит заголовок сообщения.
@@ -138,7 +142,7 @@ public struct UDPMessage
     }
 }
 
-public struct TCPMessage
+public struct TCPHeader
 {
     /// <summary>
     /// Количесво байтов в которых содержиться размер  TCP сообщения.
@@ -172,22 +176,6 @@ public struct ServiceTCPMessage
     /// </summary>
     public const int MIN_LENGTH = 3;
 
-    /// <summary>
-    /// Размер пакета от клинта в котором приходит порт.
-    /// </summary>
-    public const int TRANSFER_PORT_LENGTH = 3;
-
-    /// <summary>
-    /// Индекс на первый байт в сообщение которое содержит порт клинта 
-    /// с которого будут приходить UDP пакеты.
-    /// </summary>
-    public const int TRANSFER_PORT_INDEX_1byte = 1;
-    /// <summary>
-    /// Индекс на второй байт в сообщение которое содержит порт клинта 
-    /// с которого будут приходить UDP пакеты.
-    /// </summary>
-    public const int TRANSFER_PORT_INDEX_2byte = 2;
-
     public struct ServerToClient
     {
         /// <summary>
@@ -201,30 +189,70 @@ public struct ServiceTCPMessage
         public const int CLIENT_DISCONNECTING = 2;
 
         /// <summary>
-        /// Запрашивает у клинта номер порта по которому 
-        /// тот будет передавать UDP пакеты.
+        /// Высылает клинту его ID и уникальный ключ, 
+        /// в ответ ожидаем UDP сообщение c зашифрованым ключом.
         /// </summary>
-        public const int REQUEST_UDP_PORT = 3;
+        public struct Connecting
+        {
+            public const int SEND_ID_CLIENT_AND_REQUEST_UDP_PACKET = 3;
+        }
     }
 
     public struct ClientToServer
     {
-        /// <summary>
-        /// Передаем сообщения в котором укажим номер порта
-        /// с которого будут передоваться UDP пакеты.
-        /// </summary>
-        public const int TRANSFER_PORT = 1;
     }
 }
 
+/*
+   HEADER MESSAGE 6 byte
+----------------------
+   message_length
+1)[256, 256, 
+     id client
+2) 256, 256, 256, 256]
+----------------------
+MESSAGE DATA 5 byte
+----------------------
+   capsule count
+3)[256
+   id message
+4)256, 256, 256, 256]
+----------------------
+   CAPSUL HEADER
+----------------------
+   capsul length
+5)[256
+   capsul type
+6) 
+[
+   100 - position
+]
+7) DATA ...
+
+*/
 public struct ServiceUDPMessage
 {
     public struct ClientToServer
     {
         /// <summary>
-        /// Передаем сообщения
+        /// Первый пакет от клиента.
+        /// [
+        ///     MESSAGE_LENGTH_1byte, MESSAGE_LENGTH_2byte,
+        ///     ID - клиента. 4 байта,
+        ///     CAPSULE_COUNT,
+        ///     ID - сообщения 4 байта,
+        ///     CAPSULE_LENGTH,
+        ///     CAPSULE_TYPE
+        /// [
         /// </summary>
-        public const int TRANSFER_PORT = 1;
+        public struct FirstPacket
+        {
+            public const byte MESSAGE_LENGTH_1byte = 0;
+            public const byte MESSAGE_LENGTH_2byte = 13;
+            public const byte CAPSULE_COUNT = 1;
+            public const byte CAPSULE_LENGTH = 1;
+            public const byte CAPSULE_TYPE = 0;
+        }
     }
 }
 

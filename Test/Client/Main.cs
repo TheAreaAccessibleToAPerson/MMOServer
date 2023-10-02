@@ -151,8 +151,7 @@ namespace Test.Client
             {
                 if (messages[i].Length == 0) continue;
 
-                if (message[TCPMessage.TYPE_INDEX] ==
-                    ServiceTCPMessage.ServerToClient.REQUEST_UDP_PORT)
+                if (message[TCPHeader.TYPE_INDEX] == 0)
                 {
                     SystemInformation("RequestUDPPort", ConsoleColor.Green);
 
@@ -161,7 +160,7 @@ namespace Test.Client
                         i_sendTCP.To(new byte[]
                             {
                                 0, 3,
-                                ServiceTCPMessage.ClientToServer.TRANSFER_PORT,
+                                //ServiceTCPMessage.ClientToServer.TRANSFER_PORT,
                                 (byte)(_UDPPort >> 8),
                                 (byte)_UDPPort,
                             });
@@ -169,7 +168,7 @@ namespace Test.Client
                     catch { destroy(); }
                 }
 #if EXCEPTION
-                else throw new Exception(messages[TCPMessage.TYPE_INDEX].ToString());
+                else throw new Exception(messages[TCPHeader.TYPE_INDEX].ToString());
 #endif
             }
         }
@@ -232,8 +231,8 @@ namespace Test.Client
         private int GetTCPMessageLength(byte[] message, int startIndex)
         {
             if ((message.Length - startIndex) >= ServiceTCPMessage.MIN_LENGTH)
-                return message[TCPMessage.LENGTH_INDEX_2byte] ^
-                    (message[TCPMessage.LENGTH_INDEX_1byte] << 8);
+                return message[TCPHeader.LENGTH_INDEX_2byte] ^
+                    (message[TCPHeader.LENGTH_INDEX_1byte] << 8);
 #if EXCEPTION
             else
             {
