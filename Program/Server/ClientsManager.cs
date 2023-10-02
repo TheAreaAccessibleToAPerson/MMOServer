@@ -2,40 +2,37 @@ using System.Net;
 using System.Net.Sockets;
 using Butterfly;
 
-namespace Server 
+public sealed class ClientsManager : Controller
 {
-    public sealed class ClientsManager : Controller 
+    void Construction()
     {
-        void Construction()
-        {
-            obj<World.Main>("World");
-            obj<ReceiveUDPPacketForClients>("ReceiveUDPPacketForClients", new string[]
-                {"127.0.0.1", "1530"});
+        obj<World.Main>("World");
+        obj<ReceiveUDPPacketForClients>("ReceiveUDPPacketForClients", new string[]
+            {"127.0.0.1", "1530"});
 
-            /*
-                Получаем нового подключившегося клиeнта и создаем для него обьект.
-            */
-            listen_message<TcpClient>(BUS.LM_CREATING_CLIENT)
-                .output_to((client) => 
-                {
-                    string name = $"{((IPEndPoint)client.Client.RemoteEndPoint).Address}{ClientsListen._}" +
-                        $"{((IPEndPoint)client.Client.RemoteEndPoint).Port}";
+        /*
+            Получаем нового подключившегося клиeнта и создаем для него обьект.
+        */
+        listen_message<TcpClient>(BUS.LM_CREATING_CLIENT)
+            .output_to((client) =>
+            {
+                string name = $"{((IPEndPoint)client.Client.RemoteEndPoint).Address}{ClientsListen._}" +
+                    $"{((IPEndPoint)client.Client.RemoteEndPoint).Port}";
 
-                    if (try_obj(name, out Client.Main createClient))
-                        createClient.destroy();
+                if (try_obj(name, out Client.Main createClient))
+                    createClient.destroy();
 
-                    obj<Client.Main>(name, client);
-                },
-                Header.WORK_WITCH_OBJECTS_EVENT);
-        }
+                obj<Client.Main>(name, client);
+            },
+            Header.WORK_WITCH_OBJECTS_EVENT);
+    }
 
-        public struct BUS 
-        {
-            /* 
-                Создает нового клинта.
-                listem_message<in TcpClient>
-            */
-            public const string LM_CREATING_CLIENT = "Creating client";
-        }
+    public struct BUS
+    {
+        /* 
+            Создает нового клинта.
+            listem_message<in TcpClient>
+        */
+        public const string LM_CREATING_CLIENT = "Creating client";
     }
 }

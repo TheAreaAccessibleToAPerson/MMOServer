@@ -29,6 +29,7 @@ MESSAGE DATA 9 byte
 
 public struct UDPHeader
 {
+
     /// <summary>
     /// Максимально возможная длина сообщения.
     /// </summary>
@@ -194,8 +195,15 @@ public struct ServiceTCPMessage
         /// </summary>
         public struct Connecting
         {
+            /// <summary>
+            /// Данный тип сообщения означает что это первое сообщение
+            /// Предназначеное для того что бы узнать IP аддресс и порт NAT.
+            /// </summary>
+            public const int TYPE = 1;
+
             public const int SEND_ID_CLIENT_AND_REQUEST_UDP_PACKET = 3;
         }
+
     }
 
     public struct ClientToServer
@@ -234,6 +242,30 @@ public struct ServiceUDPMessage
 {
     public struct ClientToServer
     {
+        public struct Connecting
+        {
+            /// <summary>
+            /// Данный тип сообщение означает что пришло первый UDP пакет от клиeнта.
+            /// </summary>
+            public const int TYPE = 1;
+
+            /// <summary>
+            /// Размер ключа.
+            /// </summary>
+            public const int KEY_LENGTH = 25;
+
+            /// <summary>
+            /// Длина сообщения. 2 - размер пакета + 4 - id клиента + KEY_LENGTH - длина зашифрованого ключа.
+            /// </summary>
+            public const int LENGTH = 6 + KEY_LENGTH;
+        }
+        public struct Data
+        {
+            /// <summary>
+            /// Данный тип сообщения означает что пришли полезные данные.
+            /// </summary>
+            public const int TYPE = 2;
+        }
         /// <summary>
         /// Первый пакет от клиента.
         /// [
