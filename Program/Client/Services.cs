@@ -57,6 +57,11 @@ public abstract class ClientService : ClientProperty, Client.IReceiveUDPPackets,
     protected IInput<byte[]> I_UDPMessageProcessing;
 
     /// <summary>
+    /// Запрос у клиента по TCP.
+    /// </summary>
+    protected IInput<RequestTCPType> I_requestTCP;
+
+    /// <summary>
     /// Проверяем не пришло ли, нам сообщение.
     /// </summary>
     protected void ReceiveTCPSocket()
@@ -104,36 +109,42 @@ public abstract class ClientService : ClientProperty, Client.IReceiveUDPPackets,
 #endif
     }
 
-
-    /// <summary>
-    /// Запрашиваем у клинта с которого тот будет отправлять UDP пакеты.
-    /// </summary>
-    protected async void RequestPort()
+    public enum RequestTCPType
     {
-#if EXCEPTION
-        if (CurrentState.HasFlag(State.None))
-#endif
+        None = 0,
+        FirstUDPPacket = 1,
+    }
+
+    protected async void RequestTCP(RequestTCPType type)
+    {
+        if (type.HasFlag(RequestTCPType.FirstUDPPacket))
         {
+#if EXCEPTION
+            if (CurrentState.HasFlag(State.None))
+#endif
+            {
 #if INFORMATION
-            SystemInformation("RequestPort", ConsoleColor.Green);
+                SystemInformation("RequestPort", ConsoleColor.Green);
 #endif
 
-            I_sendTCP.To(new byte[]
-                {
+                I_sendTCP.To(new byte[]
+                    {
                         0, 1,
-                        //ServiceTCPMessage.ServerToClient.SEND_ID_CLIENT_AND_REQUEST_UDP_PACKET
-                });
+                        ServiceTCPMessage.ServerToClient.Connecting.SEND_ID_CLIENT_AND_REQUEST_UDP_PACKET
+                    });
 
-            CurrentState = State.WaitingFirstUDPPacket;
+                CurrentState = State.WaitingFirstUDPPacket;
+            }
+            else Exception(Ex.x004, State.None, CurrentState);
+
         }
-        else Exception(Ex.x004, State.None, CurrentState);
     }
 
 
     protected struct Ex
     {
         public const string x001 = @"Минимально возможный размер сообщения который приходит " +
-            @"по протоколу TCP {0}, но прeшедшее сообщение равно {1} и имеет содержание: \n{2}\n";
+            @"по протоколу TCP {0}, но прeшедшее сообщение равно {1} и имеет содержание: {2}.";
         public const string x002 = @"В поступающем TCP сообщении имеется зоголовок в который "
             + @"записывается длина сообщения, на случай если призайдет слипание."
             + @"Длина пришедшего сообщения не сходится с сумой длин указаных в заголовкe/ах."

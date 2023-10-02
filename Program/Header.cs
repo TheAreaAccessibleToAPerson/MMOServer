@@ -119,7 +119,7 @@ public sealed class Header : Controller, ReadLine.IInformation
 
             case CREATING_CLIENT:
 
-                obj<Test.Client>("TEST_CLIENT", new string[]
+                obj<Test.TestClient>("TEST_CLIENT", new string[]
                 {
                     "127.0.0.1",
                     "34134",

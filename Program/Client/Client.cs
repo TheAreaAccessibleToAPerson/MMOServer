@@ -9,6 +9,7 @@ public sealed class Client : ClientService
         input_to(ref I_sendTCP, Header.SEND_TCP_SOCKET_EVENT, SendTCP);
         input_to(ref I_TCPMessageProcessing, Header.MESSAGE_PROCESSING_EVENT, TCPMessageProcess);
         input_to(ref I_UDPMessageProcessing, Header.MESSAGE_PROCESSING_EVENT, TCPMessageProcess);
+        input_to(ref I_requestTCP, Header.SEND_TCP_SOCKET_EVENT, RequestTCP);
         send_echo_2_0(ref I_subscribeToReceiveUDPPacket,
             ReceiveUDPPacketForClients.BUS.LE_SUBSCRIBE_CLIENT_RECEIVE_UDP_PACKETS)
                 .output_to(() => { });
@@ -18,7 +19,7 @@ public sealed class Client : ClientService
     {
         SystemInformation($"ID:{GetID()} creating.", ConsoleColor.Green);
 
-        Task.Run(RequestPort);
+        I_requestTCP.To(RequestTCPType.FirstUDPPacket);
     }
 
     void Configurate()

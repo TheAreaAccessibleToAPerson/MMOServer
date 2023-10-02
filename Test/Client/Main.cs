@@ -6,7 +6,7 @@ using Butterfly;
 
 namespace Test
 {
-    public sealed class Client : Controller.Board.LocalField<string[]>, ReadLine.IInformation
+    public sealed class TestClient : Controller.Board.LocalField<string[]>, ReadLine.IInformation
     {
         private bool _isRunning = true;
 
@@ -155,9 +155,10 @@ namespace Test
             {
                 if (messages[i].Length == 0) continue;
 
-                if (message[TCPHeader.TYPE_INDEX] == 0)
+                if (message[TCPHeader.TYPE_INDEX] == 
+                    ServiceTCPMessage.ServerToClient.Connecting.SEND_ID_CLIENT_AND_REQUEST_UDP_PACKET)
                 {
-                    SystemInformation("RequestUDPPort", ConsoleColor.Green);
+                    SystemInformation("RequestFirstUDPPacket", ConsoleColor.Green);
 
                     try
                     {
