@@ -211,7 +211,7 @@ namespace Server
 
                                 // Проверяем пришедшее сообщение на соответвие минимально
                                 // допустимому размеру сообщения.
-                                if (clientBytesBuffers[index].Length > UDPHeader.MIN_LENGTH)
+                                if (clientBytesBuffers[index].Length >= UDPHeader.MIN_LENGTH)
                                 {
                                     // Проверяем пришедшее сообщение на соответвие максимально
                                     // допустимому размеру сообщения.
