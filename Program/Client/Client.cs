@@ -1,7 +1,7 @@
 #define INFORMATION
 #define EXCEPTION
 
-public sealed class Client : ClientService, Client.IReceiveRoomMessage
+public sealed class Client : ClientService
 {
     void Construction()
     {

@@ -22,8 +22,8 @@ public sealed class ReceiveUDPPacketForClients : Controller.LocalField<string[]>
     /// <typeparam name="ulong">id клинта.</typeparam>
     /// <typeparam name="Client.Main.IReceiveFirstUDPPacket">Описывает способ получение пакета.</typeparam>
     /// <returns></returns>
-    private readonly Dictionary<ulong, Client.IReceiveFirstUDPPacket> _clientsReceiveFirstUDPPackets
-        = new Dictionary<ulong, Client.IReceiveFirstUDPPacket>();
+    private readonly Dictionary<int, Client.IReceiveFirstUDPPacket> _clientsReceiveFirstUDPPackets
+        = new Dictionary<int, Client.IReceiveFirstUDPPacket>();
 
     /// <summary>
     /// Количесво попыток перезапуска обьекта ReceiveUDPPacket.
@@ -82,15 +82,27 @@ public sealed class ReceiveUDPPacketForClients : Controller.LocalField<string[]>
                         {
                             client.Receive(buffers[index]);
                         }
+#if EXCEPTION
+                        else Exception(Ex.x08, keysClient[index] >> 32, (int)keysClient[index]);
+#endif
                     }
                     else if (type[index] == ServiceUDPMessage.ClientToServer.Connecting.TYPE)
                     {
                         if (buffers[index].Length == ServiceUDPMessage.ClientToServer.Connecting.LENGTH)
                         {
-                            int idClient = (buffers[index][UDPHeader.ID_CLIENT_1byte] << 24) ^
-                                (buffers[index][UDPHeader.ID_CLIENT_2byte] << 16) ^
+                            int idClient = (buffers[index][UDPHeader.ID_CLIENT_4byte]) ^
                                 (buffers[index][UDPHeader.ID_CLIENT_3byte] << 8) ^
-                                (buffers[index][UDPHeader.ID_CLIENT_4byte]);
+                                (buffers[index][UDPHeader.ID_CLIENT_2byte] << 16) ^
+                                (buffers[index][UDPHeader.ID_CLIENT_1byte] << 24);
+
+                            if (_clientsReceiveFirstUDPPackets.TryGetValue(idClient,
+                                out Client.IReceiveFirstUDPPacket client))
+                            {
+                                client.Receive(buffers[index]);
+                            }
+#if EXCEPTION
+                            else Exception(Ex.x07, idClient);
+#endif
                         }
                     }
                 }
@@ -226,8 +238,9 @@ public sealed class ReceiveUDPPacketForClients : Controller.LocalField<string[]>
                     + @"ReceiveUDPPacket под именем {1}";
         public const string x05 = "В момент когда ReceiveUDPPacket отправит запрос на перезапуск он должен быть уничтожен.";
         public const string x06 = @"Вы пытаетесь отписать клинта от прослушки UDP пакетов, но клиента с таким адрресом и портом {0} не существует.";
-        public const string x07 = @"";
-
+        public const string x07 = @"Вы пытатесь передать первый UDP пакет клиенту с id:{0}, но данный клинт не прослушивает такое сообщение.";
+        public const string x08 = @"Вы получили UDP пакет который предназначен для клиента подписаного на сообщения с аддресса {0} и порта {1}.";
+        public const string x09 = @"";
     }
 }
 

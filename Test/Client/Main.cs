@@ -1,13 +1,12 @@
 #define INFORMATION
 #define EXCEPTION
 
-using System.Net;
 using System.Net.Sockets;
 using Butterfly;
 
-namespace Test.Client
+namespace Test
 {
-    public sealed class Main : Controller.Board.LocalField<string[]>, ReadLine.IInformation
+    public sealed class Client : Controller.Board.LocalField<string[]>, ReadLine.IInformation
     {
         private bool _isRunning = true;
 
@@ -63,6 +62,14 @@ namespace Test.Client
             }
         }
 
+        void SendUDP(byte[] message)
+        {
+            if (_isRunning)
+            {
+
+            }
+        }
+
         void Start()
         {
             ReadLine.Start(this);
@@ -77,9 +84,6 @@ namespace Test.Client
 
                 _UDPSocket.Connect(Field[FieldIndex.ADDRESS],
                     Convert.ToInt32(Field[FieldIndex.UDP_PORT]));
-
-                _UDPPort = ((IPEndPoint)_UDPSocket.LocalEndPoint).Port;
-                SystemInformation($"LocalUDPPort:{_UDPPort}");
             }
             catch (Exception ex)
             {

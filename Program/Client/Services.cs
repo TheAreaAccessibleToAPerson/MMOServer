@@ -5,7 +5,7 @@ using System.Net;
 using System.Net.Sockets;
 using Butterfly;
 
-public abstract class ClientService : ClientProperty, Client.IReceiveUDPPackets
+public abstract class ClientService : ClientProperty, Client.IReceiveUDPPackets, Client.IReceiveFirstUDPPacket
 {
     protected bool IsRunning = true;
 
@@ -17,7 +17,7 @@ public abstract class ClientService : ClientProperty, Client.IReceiveUDPPackets
         RequestPort = 1,
 
         // Ожидаем пока клиент вышлет UDP пакет.
-        WaitingPort = 2,
+        WaitingFirstUDPPacket = 2,
     }
 
     private State CurrentState = State.None;
@@ -92,7 +92,16 @@ public abstract class ClientService : ClientProperty, Client.IReceiveUDPPackets
 
     void Client.IReceiveUDPPackets.Receive(byte[] packet)
     {
-        Console(packet.Length);
+#if INFORMATION
+        SystemInformation("ReceiveUDPPacket");
+#endif
+    }
+
+    void Client.IReceiveFirstUDPPacket.Receive(byte[] packet)
+    {
+#if INFORMATION
+        SystemInformation("ReceiveFirstUDPPacket");
+#endif
     }
 
 
@@ -115,7 +124,7 @@ public abstract class ClientService : ClientProperty, Client.IReceiveUDPPackets
                         //ServiceTCPMessage.ServerToClient.SEND_ID_CLIENT_AND_REQUEST_UDP_PACKET
                 });
 
-            CurrentState = State.WaitingPort;
+            CurrentState = State.WaitingFirstUDPPacket;
         }
         else Exception(Ex.x004, State.None, CurrentState);
     }
