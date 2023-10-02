@@ -17,7 +17,7 @@ public sealed class ReceiveUDPPacketForClients : Controller.LocalField<string[]>
         = new Dictionary<ulong, Client.IReceiveUDPPackets>();
 
     /// <summary>
-    /// Сюда подписываются клиенты 
+    /// Сюда подписываются клиенты ожидающие первый UDP пакет.
     /// </summary>
     /// <typeparam name="ulong">id клинта.</typeparam>
     /// <typeparam name="Client.Main.IReceiveFirstUDPPacket">Описывает способ получение пакета.</typeparam>
@@ -40,15 +40,22 @@ public sealed class ReceiveUDPPacketForClients : Controller.LocalField<string[]>
             После чего оповестим об окончании подписании.
         */
         listen_echo_2_0<ulong, Client.IReceiveUDPPackets>(BUS.LE_SUBSCRIBE_CLIENT_RECEIVE_UDP_PACKETS)
-            .output_to((addressAndPort, receiveUDPPackets, @return) =>
+            .output_to((key, receiveUDPPackets, @return) =>
             {
-                if (_clientsReceiveUDPPackets.ContainsKey(addressAndPort))
+                if (_clientsReceiveUDPPackets.ContainsKey(key))
                 {
-                    Exception(Ex.x00, addressAndPort);
+#if INFORMATION
+                    Exception(Ex.x00, key);
+#endif
                 }
                 else
                 {
-                    _clientsReceiveUDPPackets.Add(addressAndPort, receiveUDPPackets);
+#if INFORMATION
+                    SystemInformation
+                        ($"Клиент {@return.GetKey()} подписался на прослушкy UDP пакетов.",
+                                ConsoleColor.Green);
+#endif
+                    _clientsReceiveUDPPackets.Add(key, receiveUDPPackets);
 
                     // Оповестим что подписка окончена.
                     @return.To();
@@ -60,13 +67,43 @@ public sealed class ReceiveUDPPacketForClients : Controller.LocalField<string[]>
             Отписываем клиента от прослушки входящих UDP пакетов.
         */
         listen_message<ulong>(BUS.LM_UNSUBSCRIBE_CLIENT_RECEIVE_UDP_PACKETS)
-            .output_to((addressAndPortReceiveUDPPackets) =>
+            .output_to((key) =>
             {
-                if (_clientsReceiveUDPPackets.Remove(addressAndPortReceiveUDPPackets))
+                if (_clientsReceiveUDPPackets.Remove(key))
                 {
-                    /* ... */
+#if INFORMATION
+                    SystemInformation
+                        ($"Клиент {key << 32}/" +
+                            $"{(int)key} отписался от прослушки UDP пакетов.",
+                                ConsoleColor.Green);
+#endif
                 }
-                else Exception(Ex.x06, addressAndPortReceiveUDPPackets);
+#if EXCEPTION
+                else Exception(Ex.x06, key);
+#endif
+            },
+            Header.UDP_WORK_EVENT);
+
+        listen_echo_1_0<int>(BUS.LE_SUBSCRIBE_CLIENT_RECEIVE_FIRST_UDP_PACKET)
+            .output_to((idClient, @return) =>
+            {
+                if (_clientsReceiveFirstUDPPackets.ContainsKey(idClient))
+                {
+                    #if EXCEPTION
+                    #endif
+                }
+                else
+                {
+#if INFORMATION
+                    SystemInformation
+                        ($"Клиент id:{@return.GetKey()} подписался на получение первого UDP пакета",
+                            ConsoleColor.Green);
+#endif
+                    // Сигнализируем что мы подписались.
+                    @return.To();
+                }
+
+
             },
             Header.UDP_WORK_EVENT);
 
@@ -258,7 +295,6 @@ public sealed class ReceiveUDPPacket : Controller.Board.LocalField<string[]>
     private bool _isRunning = true;
 
     private IInput<byte[], ulong[], byte[][], int> i_sendPacketsToClients;
-
     private IInput i_restartCurrentObject;
     private IInput i_resetNumberOfAttempts;
 
