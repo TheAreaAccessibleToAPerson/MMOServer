@@ -211,11 +211,11 @@ namespace Server
 
                                 // Проверяем пришедшее сообщение на соответвие минимально
                                 // допустимому размеру сообщения.
-                                if (clientBytesBuffers.Length > UDPHeader.MIN_LENGTH)
+                                if (clientBytesBuffers[index].Length > UDPHeader.MIN_LENGTH)
                                 {
                                     // Проверяем пришедшее сообщение на соответвие максимально
                                     // допустимому размеру сообщения.
-                                    if (clientBytesBuffers.Length <= UDPHeader.MAX_LENGTH)
+                                    if (clientBytesBuffers[index].Length <= UDPHeader.MAX_LENGTH)
                                     {
                                         // Получаем ip адресс клиeнта и его порт.
                                         clientAddressBuffers[index] = _remoteIpEndPoint.Address.ToString();
@@ -226,7 +226,7 @@ namespace Server
 #if EXCEPTION                           
                                     else
                                     {
-                                        Exception(Ex.x02, UDPHeader.MAX_LENGTH, clientBytesBuffers.Length);
+                                        Exception(Ex.x02, UDPHeader.MAX_LENGTH, clientBytesBuffers[index].Length);
                                     }
 #endif
                                 }
