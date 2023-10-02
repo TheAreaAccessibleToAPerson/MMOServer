@@ -19,10 +19,10 @@ public sealed class ClientsManager : Controller
                 string name = $"{((IPEndPoint)client.Client.RemoteEndPoint).Address}{ClientsListen._}" +
                     $"{((IPEndPoint)client.Client.RemoteEndPoint).Port}";
 
-                if (try_obj(name, out Client.Main createClient))
+                if (try_obj(name, out Client createClient))
                     createClient.destroy();
 
-                obj<Client.Main>(name, client);
+                obj<Client>(name, client);
             },
             Header.WORK_WITCH_OBJECTS_EVENT);
     }

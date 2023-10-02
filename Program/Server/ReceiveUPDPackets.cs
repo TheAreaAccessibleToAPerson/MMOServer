@@ -89,14 +89,15 @@ public sealed class ReceiveUDPPacketForClients : Controller.LocalField<string[]>
             {
                 if (_clientsReceiveFirstUDPPackets.ContainsKey(idClient))
                 {
-                    #if EXCEPTION
-                    #endif
+#if EXCEPTION
+                    Exception(Ex.x09, idClient);
+#endif
                 }
                 else
                 {
 #if INFORMATION
                     SystemInformation
-                        ($"Клиент id:{@return.GetKey()} подписался на получение первого UDP пакета",
+                        ($"Клиент id:{idClient}, key:{@return.GetKey()} подписался на получение первого UDP пакета",
                             ConsoleColor.Green);
 #endif
                     // Сигнализируем что мы подписались.
@@ -277,7 +278,9 @@ public sealed class ReceiveUDPPacketForClients : Controller.LocalField<string[]>
         public const string x06 = @"Вы пытаетесь отписать клинта от прослушки UDP пакетов, но клиента с таким адрресом и портом {0} не существует.";
         public const string x07 = @"Вы пытатесь передать первый UDP пакет клиенту с id:{0}, но данный клинт не прослушивает такое сообщение.";
         public const string x08 = @"Вы получили UDP пакет который предназначен для клиента подписаного на сообщения с аддресса {0} и порта {1}.";
-        public const string x09 = @"";
+        public const string x09 = @"Клиент с таким id:{0} уже подписался и ожидает первый UDP пакет.";
+        public const string x10 = @"";
+        public const string x11 = @"";
     }
 }
 

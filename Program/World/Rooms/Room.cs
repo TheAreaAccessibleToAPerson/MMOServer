@@ -5,8 +5,8 @@ namespace World
     public sealed class Room : Controller.LocalField<RoomSetting>,
         Room.IReceiveClientMessage
     {
-        private readonly Dictionary<string, Client.Main> _clients
-            = new Dictionary<string, Client.Main>();
+        private readonly Dictionary<string, Client> _clients
+            = new Dictionary<string, Client>();
 
         void Construction()
         {

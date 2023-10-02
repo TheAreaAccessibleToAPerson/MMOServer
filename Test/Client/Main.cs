@@ -163,10 +163,7 @@ namespace Test
                     {
                         i_sendTCP.To(new byte[]
                             {
-                                0, 3,
-                                //ServiceTCPMessage.ClientToServer.TRANSFER_PORT,
-                                (byte)(_UDPPort >> 8),
-                                (byte)_UDPPort,
+                                0, 3, 0, 0, 0, 0, 5
                             });
                     }
                     catch { destroy(); }
