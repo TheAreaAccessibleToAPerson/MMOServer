@@ -9,7 +9,7 @@ public sealed class Client : ClientService
 
         input_to(ref I_sendSSL, Header.SEND_SSL_MESSAGE_EVENT, SendSSL);
         input_to(ref I_TCPMessageProcessing, Header.SEND_SSL_MESSAGE_EVENT, SSLMessageProcess);
-        input_to(ref I_UDPMessageProcessing, Header.SEND_SSL_MESSAGE_EVENT, SSLMessageProcess);
+        input_to(ref I_UDPMessageProcessing, Header.SEND_UDP_MESSAGE_EVENT, SSLMessageProcess);
 
         send_echo_3_0(ref I_subscribeOrUnsubscribeToReceiveFirstUDPPacket, 
             ReceiveUDPPacketForClients.BUS.LE_SUBSCRIBE_OR_UNSUBSCRIBE_CLIENT_RECEIVE_FIRST_UDP_PACKET)
