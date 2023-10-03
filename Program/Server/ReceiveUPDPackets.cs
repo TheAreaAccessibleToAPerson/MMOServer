@@ -22,8 +22,8 @@ public sealed class ReceiveUDPPacketForClients : Controller.LocalField<string[]>
     /// <typeparam name="ulong">id клинта.</typeparam>
     /// <typeparam name="Client.Main.IReceiveFirstUDPPacket">Описывает способ получение пакета.</typeparam>
     /// <returns></returns>
-    private readonly Dictionary<int, Client.IReceiveFirstUDPPacket> _clientsReceiveFirstUDPPackets
-        = new Dictionary<int, Client.IReceiveFirstUDPPacket>();
+    private readonly Dictionary<uint, Client.IReceiveFirstUDPPacket> _clientsReceiveFirstUDPPackets
+        = new Dictionary<uint, Client.IReceiveFirstUDPPacket>();
 
     /// <summary>
     /// Количесво попыток перезапуска обьекта ReceiveUDPPacket.
@@ -66,7 +66,7 @@ public sealed class ReceiveUDPPacketForClients : Controller.LocalField<string[]>
         /*
             Отписываем клиента от прослушки входящих UDP пакетов.
         */
-        listen_message<ulong>(BUS.LM_UNSUBSCRIBE_CLIENT_RECEIVE_UDP_PACKETS)
+        listen_message<uint>(BUS.LM_UNSUBSCRIBE_CLIENT_RECEIVE_UDP_PACKETS)
             .output_to((key) =>
             {
                 if (_clientsReceiveUDPPackets.Remove(key))
@@ -84,27 +84,50 @@ public sealed class ReceiveUDPPacketForClients : Controller.LocalField<string[]>
             },
             Header.UDP_WORK_EVENT);
 
-        listen_echo_1_0<int>(BUS.LE_SUBSCRIBE_CLIENT_RECEIVE_FIRST_UDP_PACKET)
-            .output_to((idClient, @return) =>
+        listen_echo_3_0<uint, ReceiveFirstUDPPacketType, Client.IReceiveFirstUDPPacket>
+            (BUS.LE_SUBSCRIBE_OR_UNSUBSCRIBE_CLIENT_RECEIVE_FIRST_UDP_PACKET)
+                .output_to((idClient, type, receive, @return) =>
             {
-                if (_clientsReceiveFirstUDPPackets.ContainsKey(idClient))
+                if (type.HasFlag(ReceiveFirstUDPPacketType.Subscribe))
                 {
+                    if (_clientsReceiveFirstUDPPackets.ContainsKey(idClient))
+                    {
 #if EXCEPTION
-                    Exception(Ex.x09, idClient);
+                        Exception(Ex.x09, @return.GetKey(), idClient);
 #endif
-                }
-                else
-                {
+                    }
+                    else
+                    {
+                        _clientsReceiveFirstUDPPackets.Add(idClient, receive);
+
 #if INFORMATION
-                    SystemInformation
-                        ($"Клиент id:{idClient}, key:{@return.GetKey()} подписался на получение первого UDP пакета",
-                            ConsoleColor.Green);
+                        SystemInformation
+                            ($"Клиент id:{idClient}, key:{@return.GetKey()} подписался на получение " +
+                                "первого UDP пакета", ConsoleColor.Green);
 #endif
-                    // Сигнализируем что мы подписались.
-                    @return.To();
+                        // Сигнализируем что мы успешно подписались.
+                        @return.To();
+                    }
                 }
-
-
+                else if (type.HasFlag(ReceiveFirstUDPPacketType.Unsubscribe))
+                {
+                    if (_clientsReceiveFirstUDPPackets.Remove(idClient))
+                    {
+#if INFORMATION
+                        SystemInformation($"Клиент {idClient}, key:{@return.GetKey()} " +
+                            "был отписан от ожидания первого UDP пакета.");
+#endif
+                        // Сигнализируем что мы отписались.
+                        @return.To();
+                    }
+                    else
+                    {
+#if EXCEPTION
+                        Exception(Ex.x10, @return.GetKey(), idClient);
+#endif
+                    }
+                }
+                else throw new Exception();
             },
             Header.UDP_WORK_EVENT);
 
@@ -128,10 +151,10 @@ public sealed class ReceiveUDPPacketForClients : Controller.LocalField<string[]>
                     {
                         if (buffers[index].Length == ServiceUDPMessage.ClientToServer.Connecting.LENGTH)
                         {
-                            int idClient = (buffers[index][UDPHeader.ID_CLIENT_4byte]) ^
-                                (buffers[index][UDPHeader.ID_CLIENT_3byte] << 8) ^
-                                (buffers[index][UDPHeader.ID_CLIENT_2byte] << 16) ^
-                                (buffers[index][UDPHeader.ID_CLIENT_1byte] << 24);
+                            uint idClient = buffers[index][UDPHeader.ID_CLIENT_4byte] ^
+                                (uint)(buffers[index][UDPHeader.ID_CLIENT_3byte] << 8) ^
+                                (uint)(buffers[index][UDPHeader.ID_CLIENT_2byte] << 16) ^
+                                (uint)(buffers[index][UDPHeader.ID_CLIENT_1byte] << 24);
 
                             if (_clientsReceiveFirstUDPPackets.TryGetValue(idClient,
                                 out Client.IReceiveFirstUDPPacket client))
@@ -221,19 +244,12 @@ public sealed class ReceiveUDPPacketForClients : Controller.LocalField<string[]>
         /// <summary>
         /// Подписывает клиетa на получение первого UDP сообщения.
         /// listen_echo
-        /// [in ulong - id клиента, Client.Main.IReceiveFirstUDPPacket способ передач пакета клиенту.
+        /// [in ulong - id клиента, bool - true(subscribe)/false(unsubscribe) 
+        /// Client.Main.IReceiveFirstUDPPacket способ передач пакета клиенту.
         /// out пустое эхо сообщающее что клинт подписан]
         /// </summary>
-        public const string LE_SUBSCRIBE_CLIENT_RECEIVE_FIRST_UDP_PACKET
-            = "Subscribe client receive first udp packet";
-
-        /// <summary>
-        /// Отдписывает клиетa на получение первого UDP сообщения.
-        /// listen_echo
-        /// [in ulong - id клиента, out пустое это сообщающее что клиент отписан]
-        /// </summary>
-        public const string LE_UNSUBSCRIBE_CLIENT_RECEIVE_FIRST_UDP_PACKET
-            = "Usubscribe client receive first udp packet";
+        public const string LE_SUBSCRIBE_OR_UNSUBSCRIBE_CLIENT_RECEIVE_FIRST_UDP_PACKET
+            = "Subscribe/Unsubscribe client receive first udp packet";
 
         ///<summary>
         /// Принимает от клиeнта его имя и способ передачи ему UDP пакетов.
@@ -278,8 +294,9 @@ public sealed class ReceiveUDPPacketForClients : Controller.LocalField<string[]>
         public const string x06 = @"Вы пытаетесь отписать клинта от прослушки UDP пакетов, но клиента с таким адрресом и портом {0} не существует.";
         public const string x07 = @"Вы пытатесь передать первый UDP пакет клиенту с id:{0}, но данный клинт не прослушивает такое сообщение.";
         public const string x08 = @"Вы получили UDP пакет который предназначен для клиента подписаного на сообщения с аддресса {0} и порта {1}.";
-        public const string x09 = @"Клиент с таким id:{0} уже подписался и ожидает первый UDP пакет.";
-        public const string x10 = @"";
+        public const string x09 = @"Клиент {0} с таким id:{1} уже подписался и ожидает первый UDP пакет.";
+        public const string x10 = @"Вы пытаетесь отписать клинта {0} с id:{1}, " +
+            @"но данный клинт не подписан и не ожидает первый UDP пакет.";
         public const string x11 = @"";
     }
 }
@@ -313,12 +330,13 @@ public sealed class ReceiveUDPPacket : Controller.Board.LocalField<string[]>
 
             try
             {
-                while (_isRunning)
+                //while (_isRunning)
                 {
                     int available = _server.Available;
-
                     if (available > 0)
                     {
+                        Console("AVAILABLE:" + available);
+
                         byte[] clientMessageTypeBuffers = new byte[2048];
                         ulong[] clientMessageAddressAndPortBuffers = new ulong[2048];
                         byte[][] clientBytesBuffers = new byte[2048][];
@@ -341,6 +359,10 @@ public sealed class ReceiveUDPPacket : Controller.Board.LocalField<string[]>
                                     byte messageType = (byte)(clientBytesBuffers[index][UDPHeader.TYPE_INDEX] >> 6);
 
                                     clientMessageTypeBuffers[index] = messageType;
+
+#if INFORMATION
+                                    SystemInformation("PACKET", ConsoleColor.Yellow);
+#endif
 
                                     if (messageType == ServiceUDPMessage.ClientToServer.Data.TYPE)
                                     {
@@ -398,7 +420,7 @@ public sealed class ReceiveUDPPacket : Controller.Board.LocalField<string[]>
                 i_restartCurrentObject.To();
             }
         },
-        1, Thread.Priority.Highest);
+        5, Thread.Priority.Highest);
     }
 
     void Start()

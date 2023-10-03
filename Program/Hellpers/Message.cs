@@ -240,6 +240,11 @@ MESSAGE DATA 5 byte
 */
 public struct ServiceUDPMessage
 {
+    /// <summary>
+    /// Размер ключа.
+    /// </summary>
+    public const int KEY_LENGTH = 25;
+
     public struct ClientToServer
     {
         public struct Connecting
@@ -249,15 +254,11 @@ public struct ServiceUDPMessage
             /// </summary>
             public const int TYPE = 1;
 
-            /// <summary>
-            /// Размер ключа.
-            /// </summary>
-            public const int KEY_LENGTH = 25;
 
             /// <summary>
             /// Длина сообщения. 2 - размер пакета + 4 - id клиента + KEY_LENGTH - длина зашифрованого ключа.
             /// </summary>
-            public const int LENGTH = 6 + KEY_LENGTH;
+            public const int LENGTH = 6 + ServiceUDPMessage.KEY_LENGTH;
         }
         public struct Data
         {

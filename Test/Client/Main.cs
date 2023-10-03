@@ -1,6 +1,7 @@
 #define INFORMATION
 #define EXCEPTION
 
+using System.Net;
 using System.Net.Sockets;
 using Butterfly;
 
@@ -11,19 +12,22 @@ namespace Test
         private bool _isRunning = true;
 
         private IInput<byte[]> i_sendTCP;
+        private IInput<byte[]> i_sendUDP;
 
         private readonly Socket _TCPSocket =
             new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
         private readonly Socket _UDPSocket =
             new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+
         private int _UDPPort;
 
         void Construction()
         {
-            input_to(ref i_sendTCP, Header.SEND_TCP_SOCKET_EVENT, SendTCP);
+            input_to(ref i_sendTCP, Header.SEND_SSL_MESSAGE_EVENT, SendTCP);
+            input_to(ref i_sendUDP, Header.SEND_UDP_MESSAGE_EVENT, SendUDP);
 
-            add_event(Header.RECEIVE_TCP_SOCKET_EVENT, () =>
+            add_event(Header.RECEIVE_SSL_EVENT, () =>
             {
                 if (_isRunning)
                 {
@@ -66,7 +70,14 @@ namespace Test
         {
             if (_isRunning)
             {
-
+#if INFORMATION
+                Console(Message.Show("SendUDP", message, 40));
+#endif
+                try
+                {
+                    _UDPSocket.Send(message);
+                }
+                catch { destroy(); }
             }
         }
 
@@ -100,6 +111,7 @@ namespace Test
                 try
                 {
                     _TCPSocket.Close();
+                    _UDPSocket.Close();
                 }
                 catch { /* ... */ }
             }
@@ -155,16 +167,16 @@ namespace Test
             {
                 if (messages[i].Length == 0) continue;
 
-                if (message[TCPHeader.TYPE_INDEX] == 
+                if (message[TCPHeader.TYPE_INDEX] ==
                     ServiceTCPMessage.ServerToClient.Connecting.SEND_ID_CLIENT_AND_REQUEST_UDP_PACKET)
                 {
                     SystemInformation("RequestFirstUDPPacket", ConsoleColor.Green);
 
                     try
                     {
-                        i_sendTCP.To(new byte[]
+                        i_sendUDP.To(new byte[]
                             {
-                                0, 3, 0, 0, 0, 0, 5
+                                0, 3, 0, 0, 0,
                             });
                     }
                     catch { destroy(); }

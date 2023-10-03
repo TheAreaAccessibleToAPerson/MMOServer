@@ -3,24 +3,22 @@
 
 using System.Net;
 using System.Net.Sockets;
+
 using Butterfly;
 
-public abstract class ClientService : ClientProperty, Client.IReceiveUDPPackets, Client.IReceiveFirstUDPPacket
+public abstract class ClientService : ClientProperty,
+    Client.IReceiveUDPPackets, Client.IReceiveFirstUDPPacket
 {
     protected bool IsRunning = true;
 
-    public enum State
-    {
-        None = 0,
+    protected uint ID = 0;
 
-        // Запрашиваем порт с которого клиент будет отправлять UDP пакеты.
-        RequestPort = 1,
+    /// <summary>
+    /// В первом UDP пакете придет данный ключ в зашифровоном виде.
+    /// </summary>
+    protected byte[] FirstUDPPacketKey = new byte[ServiceUDPMessage.KEY_LENGTH];
 
-        // Ожидаем пока клиент вышлет UDP пакет.
-        WaitingFirstUDPPacket = 2,
-    }
-
-    private State CurrentState = State.None;
+    private StateType CurrentState = StateType.None;
 
     protected Socket TCPSocket;
 
@@ -34,17 +32,32 @@ public abstract class ClientService : ClientProperty, Client.IReceiveUDPPackets,
     /// </summary>
     protected int RemoteUDPPort;
 
+    protected ulong RemoteUDPAddressAndPort;
+
     /// <summary>
     /// По данному ключу клиeнт будет подписан в прослушку UDP пакетов.
     /// </summary>
     private ulong SubscribeKeyToReceiveUDPPackets = 0;
 
-    protected IInput<ulong, Client.IReceiveUDPPackets> I_subscribeToReceiveUDPPacket;
+    /// <summary>
+    /// Подписывает клинта на прослушку входящих UDP пакетов.
+    /// </summary>
+    protected IInput<ulong, Client.IReceiveUDPPackets> I_subscribeToReceiveUDPPackets;
+
+    /// <summary>
+    /// Отписывает клиента из прослушки входящих UDP пакетов.
+    /// </summary>
+    protected IInput<ulong> I_unsubscribeFromReceiveUDPPacket;
+
+    /// <summary>
+    /// Подписывает/Отписывает клиента от ожидания первого UDP пакета.
+    /// </summary>
+    protected IInput<uint, ReceiveFirstUDPPacketType, Client.IReceiveFirstUDPPacket> I_subscribeOrUnsubscribeToReceiveFirstUDPPacket;
 
     /// <summary>
     /// Отправляет сообщение по TCP сокету.
     /// </summary>
-    protected IInput<byte[]> I_sendTCP;
+    protected IInput<byte[]> I_sendSSL;
 
     /// <summary>
     /// Обрабатывает входящие TCP сообщения.
@@ -59,12 +72,12 @@ public abstract class ClientService : ClientProperty, Client.IReceiveUDPPackets,
     /// <summary>
     /// Запрос у клиента по TCP.
     /// </summary>
-    protected IInput<RequestTCPType> I_requestTCP;
+    protected IInput<RequestTCPType> I_requestSSL;
 
     /// <summary>
     /// Проверяем не пришло ли, нам сообщение.
     /// </summary>
-    protected void ReceiveTCPSocket()
+    protected void ReceiveSSL()
     {
         if (IsRunning)
         {
@@ -109,37 +122,71 @@ public abstract class ClientService : ClientProperty, Client.IReceiveUDPPackets,
 #endif
     }
 
-    public enum RequestTCPType
-    {
-        None = 0,
-        FirstUDPPacket = 1,
-    }
 
-    protected async void RequestTCP(RequestTCPType type)
+    /// <summary>
+    /// В данном методе будет произведена настройка соединения с клиентом.
+    /// </summary>
+    protected void SettingConnection()
     {
-        if (type.HasFlag(RequestTCPType.FirstUDPPacket))
-        {
-#if EXCEPTION
-            if (CurrentState.HasFlag(State.None))
-#endif
-            {
 #if INFORMATION
-                SystemInformation("RequestPort", ConsoleColor.Green);
+            SystemInformation($"SettingConnection:{CurrentState}", ConsoleColor.Yellow);
 #endif
 
-                I_sendTCP.To(new byte[]
-                    {
+        if (IsRunning == false) return;
+
+        // Подписываемся на получение первого UDP пакета.
+        if (CurrentState.HasFlag(StateType.None))
+        {
+            CurrentState = StateType.SubscribeToReceiveFirstUDPPacket;
+
+#if INFORMATION
+            SystemInformation("run subscribe to receiveFirst udp packet.", ConsoleColor.Yellow);
+#endif
+
+            I_subscribeOrUnsubscribeToReceiveFirstUDPPacket.To(ID, ReceiveFirstUDPPacketType.Subscribe, this);
+        }
+        else if (CurrentState.HasFlag(StateType.SubscribeToReceiveFirstUDPPacket))
+        {
+#if INFORMATION
+            SystemInformation("end subscribe to receiveFirst udp packet.", ConsoleColor.Yellow);
+#endif
+
+            CurrentState = StateType.RequestFirstUDPPacket;
+
+#if INFORMATION
+            SystemInformation("run request client first udp packet.", ConsoleColor.Yellow);
+#endif
+            I_sendSSL.To(new byte[]
+                {
                         0, 1,
                         ServiceTCPMessage.ServerToClient.Connecting.SEND_ID_CLIENT_AND_REQUEST_UDP_PACKET
-                    });
+                });
+        }
+        else if (CurrentState.HasFlag(StateType.RequestFirstUDPPacket))
+        {
+#if INFORMATION
+            SystemInformation("end request client first udp packet.", ConsoleColor.Yellow);
+#endif
 
-                CurrentState = State.WaitingFirstUDPPacket;
-            }
-            else Exception(Ex.x004, State.None, CurrentState);
+            CurrentState = StateType.SubscribeToReceiveUDPPackets;
+
+#if INFORMATION
+            SystemInformation("run subscribe receive udp packets.", ConsoleColor.Yellow);
+#endif
+        
+            I_subscribeToReceiveUDPPackets.To(RemoteUDPAddressAndPort, this);
+        }
+        else if (CurrentState.HasFlag(StateType.SubscribeToReceiveUDPPackets))
+        {
+#if INFORMATION
+            SystemInformation("end subscribe receive udp packets.", ConsoleColor.Yellow);
+#endif
+
+        // Сообщаем клинту что он может отправлять UDP пакеты.
 
         }
+        else throw new Exception();
     }
-
 
     protected struct Ex
     {
@@ -174,4 +221,5 @@ public abstract class ClientService : ClientProperty, Client.IReceiveUDPPackets,
         public const string x020 = @"";
         public const string x021 = @"";
     }
+
 }

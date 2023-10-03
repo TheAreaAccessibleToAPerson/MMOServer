@@ -5,21 +5,38 @@ public sealed class Client : ClientService
 {
     void Construction()
     {
-        add_event(Header.RECEIVE_TCP_SOCKET_EVENT, ReceiveTCPSocket);
-        input_to(ref I_sendTCP, Header.SEND_TCP_SOCKET_EVENT, SendTCP);
-        input_to(ref I_TCPMessageProcessing, Header.MESSAGE_PROCESSING_EVENT, TCPMessageProcess);
-        input_to(ref I_UDPMessageProcessing, Header.MESSAGE_PROCESSING_EVENT, TCPMessageProcess);
-        input_to(ref I_requestTCP, Header.SEND_TCP_SOCKET_EVENT, RequestTCP);
-        send_echo_2_0(ref I_subscribeToReceiveUDPPacket,
+        add_event(Header.RECEIVE_SSL_EVENT, ReceiveSSL);
+
+        input_to(ref I_sendSSL, Header.SEND_SSL_MESSAGE_EVENT, SendSSL);
+        input_to(ref I_TCPMessageProcessing, Header.SEND_SSL_MESSAGE_EVENT, SSLMessageProcess);
+        input_to(ref I_UDPMessageProcessing, Header.SEND_SSL_MESSAGE_EVENT, SSLMessageProcess);
+
+        send_echo_3_0(ref I_subscribeOrUnsubscribeToReceiveFirstUDPPacket, 
+            ReceiveUDPPacketForClients.BUS.LE_SUBSCRIBE_OR_UNSUBSCRIBE_CLIENT_RECEIVE_FIRST_UDP_PACKET)
+                .output_to(SettingConnection, Header.WORK_WITCH_OBJECTS_EVENT);
+
+        send_echo_2_0(ref I_subscribeToReceiveUDPPackets,
             ReceiveUDPPacketForClients.BUS.LE_SUBSCRIBE_CLIENT_RECEIVE_UDP_PACKETS)
-                .output_to(() => { });
+                .output_to(SettingConnection, Header.WORK_WITCH_OBJECTS_EVENT);
     }
 
     void Start()
     {
+        /*****************ПЕРЕДЕЛАТЬ************************/
+        new Random().NextBytes(FirstUDPPacketKey);
+
+        if (ClientUniqueID.Get(out uint id))
+            ID = id;
+        else
+        {
+            SystemInformation("Привышено значение максимально" +
+                "возможного количесво ID для клиентов.");
+        }
+        /***************************************************/
+
         SystemInformation($"ID:{GetID()} creating.", ConsoleColor.Green);
 
-        I_requestTCP.To(RequestTCPType.FirstUDPPacket);
+        SettingConnection();
     }
 
     void Configurate()
@@ -37,7 +54,7 @@ public sealed class Client : ClientService
     {
         if (StateInformation.IsCallStart)
         {
-            I_sendTCP.To(new byte[] { 0, 1, ServiceTCPMessage.ServerToClient.CLIENT_DISCONNECTING });
+            I_sendSSL.To(new byte[] { 0, 1, ServiceTCPMessage.ServerToClient.CLIENT_DISCONNECTING });
         }
 
         IsRunning = false;
@@ -49,7 +66,7 @@ public sealed class Client : ClientService
     /// Отправляем сообщение по TCP.
     /// </summary>
     /// <param name="message"></param>
-    private void SendTCP(byte[] message)
+    private void SendSSL(byte[] message)
     {
         if (IsRunning)
         {
@@ -65,7 +82,7 @@ public sealed class Client : ClientService
         }
     }
 
-    private void TCPMessageProcess(byte[] message)
+    private void SSLMessageProcess(byte[] message)
     {
 #if INFORMATION
         SystemInformation("TCPMessageProcess", ConsoleColor.Green);

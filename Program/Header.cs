@@ -15,13 +15,17 @@ public sealed class Header : Controller, ReadLine.IInformation
     /// Отвечает события на котрые подпишутся клиенты для прослушивания сообщений
     /// поступающих в TCPSocket.
     /// </summary>
-    public const string RECEIVE_TCP_SOCKET_EVENT = "Receive tcp socket.";
+    public const string RECEIVE_SSL_EVENT = "Receive ssl.";
 
     /// <summary>
     /// Отвечает за отправку сообщений по TCPSocket.
     /// </summary>
-    public const string SEND_TCP_SOCKET_EVENT = "Send tcp socket.";
-    public const string MESSAGE_PROCESSING_EVENT = "Message processing";
+    public const string SEND_SSL_MESSAGE_EVENT = "Send ssl mesage.";
+
+    /// <summary>
+    /// Отвечает за отправку сообщений по UDPSocket.
+    /// </summary>
+    public const string SEND_UDP_MESSAGE_EVENT = "Send udp message.";
 
     void Construction()
     {
@@ -30,8 +34,8 @@ public sealed class Header : Controller, ReadLine.IInformation
         listen_events(WORK_WITCH_OBJECTS_EVENT, WORK_WITCH_OBJECTS_EVENT);
         listen_events(LISTEN_CLIENTS_EVENT, LISTEN_CLIENTS_EVENT);
         listen_events(UDP_WORK_EVENT, UDP_WORK_EVENT);
-        listen_events(SEND_TCP_SOCKET_EVENT, SEND_TCP_SOCKET_EVENT);
-        listen_events(MESSAGE_PROCESSING_EVENT, MESSAGE_PROCESSING_EVENT);
+        listen_events(SEND_SSL_MESSAGE_EVENT, SEND_SSL_MESSAGE_EVENT);
+        listen_events(SEND_UDP_MESSAGE_EVENT, SEND_UDP_MESSAGE_EVENT);
     }
 
     void Start()
@@ -123,7 +127,7 @@ public sealed class Header : Controller, ReadLine.IInformation
                 {
                     "127.0.0.1",
                     "34134",
-                    "55556"
+                    "15300"
                 });
 
                 break;
