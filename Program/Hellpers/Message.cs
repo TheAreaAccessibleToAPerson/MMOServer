@@ -167,7 +167,8 @@ public struct TCPHeader
     /// <summary>
     /// Указывает на тип сообщения.
     /// </summary>
-    public const int TYPE_INDEX = 2;
+    public const int TYPE_INDEX = 0;
+
 }
 
 public struct ServiceTCPMessage
@@ -195,13 +196,16 @@ public struct ServiceTCPMessage
         /// </summary>
         public struct Connecting
         {
-            /// <summary>
-            /// Данный тип сообщения означает что это первое сообщение
-            /// Предназначеное для того что бы узнать IP аддресс и порт NAT.
-            /// </summary>
-            public const int TYPE = 1;
+            public const int TYPE = 0;
 
-            public const int SEND_ID_CLIENT_AND_REQUEST_UDP_PACKET = 3;
+            /// <summary>
+            /// Сообщение будет содержать 
+            /// 1) 2 байта - длина сообщения.
+            /// 2) 2 байта - Тип сообщения
+            /// 3) 4 байта - id по которому зарегистрировался клинт ожидающий первый UDP пакет.
+            /// 4) Зашифрованое сообщение которое вернется по UDP.
+            /// </summary>
+            public const int LENGTH = 2 + 2 + 4 + ServiceUDPMessage.VERIFICATION_MESSAGE;
         }
 
     }
@@ -241,9 +245,10 @@ MESSAGE DATA 5 byte
 public struct ServiceUDPMessage
 {
     /// <summary>
-    /// Размер ключа.
+    /// При запросе у клинта первого UDP сообщения вы высылаем ему сообщение, которое тот зашифрует
+    /// и вышлет обратно в на сервер.
     /// </summary>
-    public const int KEY_LENGTH = 25;
+    public const int VERIFICATION_MESSAGE = 25;
 
     public struct ClientToServer
     {
@@ -254,37 +259,20 @@ public struct ServiceUDPMessage
             /// </summary>
             public const int TYPE = 1;
 
-
             /// <summary>
-            /// Длина сообщения. 2 - размер пакета + 4 - id клиента + KEY_LENGTH - длина зашифрованого ключа.
+            /// Длина сообщения(записывается в 15 байтах). 
+            /// 2 - байта тип.
+            /// 4 - байта /// id под которым клиент прослушивает первый UDP пакет
+            ///  + KEY_LENGTH - длина зашифрованого ключа.
             /// </summary>
-            public const int LENGTH = 6 + ServiceUDPMessage.KEY_LENGTH;
+            public const int LENGTH = TCPHeader.LENGTH_BYTE_COUNT + 8 + ServiceUDPMessage.VERIFICATION_MESSAGE;
         }
         public struct Data
         {
             /// <summary>
             /// Данный тип сообщения означает что пришли полезные данные.
             /// </summary>
-            public const int TYPE = 2;
-        }
-        /// <summary>
-        /// Первый пакет от клиента.
-        /// [
-        ///     MESSAGE_LENGTH_1byte, MESSAGE_LENGTH_2byte,
-        ///     ID - клиента. 4 байта,
-        ///     CAPSULE_COUNT,
-        ///     ID - сообщения 4 байта,
-        ///     CAPSULE_LENGTH,
-        ///     CAPSULE_TYPE
-        /// [
-        /// </summary>
-        public struct FirstPacket
-        {
-            public const byte MESSAGE_LENGTH_1byte = 0;
-            public const byte MESSAGE_LENGTH_2byte = 13;
-            public const byte CAPSULE_COUNT = 1;
-            public const byte CAPSULE_LENGTH = 1;
-            public const byte CAPSULE_TYPE = 0;
+            public const int TYPE = 0;
         }
     }
 }

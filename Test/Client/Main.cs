@@ -71,7 +71,7 @@ namespace Test
             if (_isRunning)
             {
 #if INFORMATION
-                Console(Message.Show("SendUDP", message, 40));
+                Console(Message.Show($"SendUDP Length:{message.Length}", message, 40));
 #endif
                 try
                 {
@@ -168,16 +168,27 @@ namespace Test
                 if (messages[i].Length == 0) continue;
 
                 if (message[TCPHeader.TYPE_INDEX] ==
-                    ServiceTCPMessage.ServerToClient.Connecting.SEND_ID_CLIENT_AND_REQUEST_UDP_PACKET)
+                    ServiceTCPMessage.ServerToClient.Connecting.TYPE)
                 {
                     SystemInformation("RequestFirstUDPPacket", ConsoleColor.Green);
 
+                    byte[] t = new byte
+                    [
+                        ServiceUDPMessage.ClientToServer.Connecting.LENGTH
+                    ];
+
+                    int messageLength = ServiceTCPMessage.ServerToClient.Connecting.LENGTH;
+                    int messageType = ServiceTCPMessage.ServerToClient.Connecting.TYPE;
+
+                    t[2] = message[2]; t[3] = message[3];
+
+                    // В первый байт нужно указать что это не зашифрованое сообщение.
+                    t[UDPHeader.TYPE_INDEX] = (byte)(t[UDPHeader.TYPE_INDEX] ^ 
+                        (byte)(ServiceUDPMessage.ClientToServer.Connecting.TYPE << 7));
+
                     try
                     {
-                        i_sendUDP.To(new byte[]
-                            {
-                                0, 3, 0, 0, 0,
-                            });
+                        i_sendUDP.To(t);
                     }
                     catch { destroy(); }
                 }
@@ -209,7 +220,6 @@ namespace Test
 #if INFORMATION
                     SystemInformation($"SplitTCPMessage:Length:{length}.");
 #endif
-
                     if (message.Length == messagesIndex++)
                         Array.Resize(ref messages, messages.Length + 1);
 

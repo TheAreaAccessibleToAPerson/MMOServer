@@ -11,12 +11,22 @@ public abstract class ClientService : ClientProperty,
 {
     protected bool IsRunning = true;
 
+    /// <summary>
+    /// 
+    /// </summary>
     protected uint ID = 0;
 
     /// <summary>
-    /// В первом UDP пакете придет данный ключ в зашифровоном виде.
+    /// Первый UDP пакет от клинта должен быть помечен данным ID. Под данному ID мы зарегистрируемся
+    /// ReceiveUDPMessage и будет ожидать этот пакет.
     /// </summary>
-    protected byte[] FirstUDPPacketKey = new byte[ServiceUDPMessage.KEY_LENGTH];
+    protected uint RegisterFirstUDPPacketID = 0;
+
+    /// <summary>
+    /// В первом UDP пакете в качесве полезных данных должно придти данное сообщение в 
+    /// зашифровоном виде.
+    /// </summary>
+    protected byte[] FirstUDPPacketData = new byte[ServiceUDPMessage.VERIFICATION_MESSAGE];
 
     private StateType CurrentState = StateType.None;
 
@@ -52,7 +62,7 @@ public abstract class ClientService : ClientProperty,
     /// <summary>
     /// Подписывает/Отписывает клиента от ожидания первого UDP пакета.
     /// </summary>
-    protected IInput<uint, ReceiveFirstUDPPacketType, Client.IReceiveFirstUDPPacket> I_subscribeOrUnsubscribeToReceiveFirstUDPPacket;
+    protected IInput<uint,  Client.IReceiveFirstUDPPacket> I_subscribeOrUnsubscribeToReceiveFirstUDPPacket;
 
     /// <summary>
     /// Отправляет сообщение по TCP сокету.
@@ -129,7 +139,7 @@ public abstract class ClientService : ClientProperty,
     protected void SettingConnection()
     {
 #if INFORMATION
-            SystemInformation($"SettingConnection:{CurrentState}", ConsoleColor.Yellow);
+        SystemInformation($"SettingConnection:{CurrentState}", ConsoleColor.Yellow);
 #endif
 
         if (IsRunning == false) return;
@@ -143,7 +153,8 @@ public abstract class ClientService : ClientProperty,
             SystemInformation("run subscribe to receiveFirst udp packet.", ConsoleColor.Yellow);
 #endif
 
-            I_subscribeOrUnsubscribeToReceiveFirstUDPPacket.To(ID, ReceiveFirstUDPPacketType.Subscribe, this);
+            I_subscribeOrUnsubscribeToReceiveFirstUDPPacket.To(RegisterFirstUDPPacketID, 
+                this);
         }
         else if (CurrentState.HasFlag(StateType.SubscribeToReceiveFirstUDPPacket))
         {
@@ -156,11 +167,28 @@ public abstract class ClientService : ClientProperty,
 #if INFORMATION
             SystemInformation("run request client first udp packet.", ConsoleColor.Yellow);
 #endif
-            I_sendSSL.To(new byte[]
-                {
-                        0, 1,
-                        ServiceTCPMessage.ServerToClient.Connecting.SEND_ID_CLIENT_AND_REQUEST_UDP_PACKET
-                });
+            byte[] m = new byte
+            [
+                TCPHeader.LENGTH_BYTE_COUNT +
+                ServiceTCPMessage.ServerToClient.Connecting.LENGTH
+            ];
+
+            int messageLength = ServiceTCPMessage.ServerToClient.Connecting.LENGTH;
+            int messageType = ServiceTCPMessage.ServerToClient.Connecting.TYPE;
+
+            byte[] t = new byte[messageLength];
+
+            t[0] = (byte)(messageLength << 8); t[1] = (byte)messageLength; 
+            t[2] = (byte)(messageType << 8); t[3] = (byte)messageType; 
+
+            t[4] = (byte)(RegisterFirstUDPPacketID << 24); t[5] = (byte)(RegisterFirstUDPPacketID << 16);
+            t[6] = (byte)(RegisterFirstUDPPacketID << 8); t[7] = (byte)RegisterFirstUDPPacketID;
+
+            int index = 0;
+            for (int i = 8; i < messageLength; i++)
+                t[i] = FirstUDPPacketData[index++];
+
+            I_sendSSL.To(t);
         }
         else if (CurrentState.HasFlag(StateType.RequestFirstUDPPacket))
         {
@@ -173,7 +201,7 @@ public abstract class ClientService : ClientProperty,
 #if INFORMATION
             SystemInformation("run subscribe receive udp packets.", ConsoleColor.Yellow);
 #endif
-        
+
             I_subscribeToReceiveUDPPackets.To(RemoteUDPAddressAndPort, this);
         }
         else if (CurrentState.HasFlag(StateType.SubscribeToReceiveUDPPackets))
@@ -182,7 +210,7 @@ public abstract class ClientService : ClientProperty,
             SystemInformation("end subscribe receive udp packets.", ConsoleColor.Yellow);
 #endif
 
-        // Сообщаем клинту что он может отправлять UDP пакеты.
+            // Сообщаем клинту что он может отправлять UDP пакеты.
 
         }
         else throw new Exception();

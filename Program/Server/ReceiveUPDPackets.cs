@@ -84,50 +84,28 @@ public sealed class ReceiveUDPPacketForClients : Controller.LocalField<string[]>
             },
             Header.UDP_WORK_EVENT);
 
-        listen_echo_3_0<uint, ReceiveFirstUDPPacketType, Client.IReceiveFirstUDPPacket>
-            (BUS.LE_SUBSCRIBE_OR_UNSUBSCRIBE_CLIENT_RECEIVE_FIRST_UDP_PACKET)
-                .output_to((idClient, type, receive, @return) =>
+        listen_echo_2_0<uint, Client.IReceiveFirstUDPPacket>
+            (BUS.LE_SUBSCRIBE_CLIENT_RECEIVE_FIRST_UDP_PACKET)
+                .output_to((idClient, receive, @return) =>
             {
-                if (type.HasFlag(ReceiveFirstUDPPacketType.Subscribe))
+                if (_clientsReceiveFirstUDPPackets.ContainsKey(idClient))
                 {
-                    if (_clientsReceiveFirstUDPPackets.ContainsKey(idClient))
-                    {
 #if EXCEPTION
-                        Exception(Ex.x09, @return.GetKey(), idClient);
+                    Exception(Ex.x09, @return.GetKey(), idClient);
 #endif
-                    }
-                    else
-                    {
-                        _clientsReceiveFirstUDPPackets.Add(idClient, receive);
+                }
+                else
+                {
+                    _clientsReceiveFirstUDPPackets.Add(idClient, receive);
 
 #if INFORMATION
-                        SystemInformation
-                            ($"Клиент id:{idClient}, key:{@return.GetKey()} подписался на получение " +
-                                "первого UDP пакета", ConsoleColor.Green);
+                    SystemInformation
+                        ($"Клиент id:{idClient}, key:{@return.GetKey()} подписался на получение " +
+                            "первого UDP пакета", ConsoleColor.Green);
 #endif
-                        // Сигнализируем что мы успешно подписались.
-                        @return.To();
-                    }
+                    // Сигнализируем что мы успешно подписались.
+                    @return.To();
                 }
-                else if (type.HasFlag(ReceiveFirstUDPPacketType.Unsubscribe))
-                {
-                    if (_clientsReceiveFirstUDPPackets.Remove(idClient))
-                    {
-#if INFORMATION
-                        SystemInformation($"Клиент {idClient}, key:{@return.GetKey()} " +
-                            "был отписан от ожидания первого UDP пакета.");
-#endif
-                        // Сигнализируем что мы отписались.
-                        @return.To();
-                    }
-                    else
-                    {
-#if EXCEPTION
-                        Exception(Ex.x10, @return.GetKey(), idClient);
-#endif
-                    }
-                }
-                else throw new Exception();
             },
             Header.UDP_WORK_EVENT);
 
@@ -156,7 +134,7 @@ public sealed class ReceiveUDPPacketForClients : Controller.LocalField<string[]>
                                 (uint)(buffers[index][UDPHeader.ID_CLIENT_2byte] << 16) ^
                                 (uint)(buffers[index][UDPHeader.ID_CLIENT_1byte] << 24);
 
-                            if (_clientsReceiveFirstUDPPackets.TryGetValue(idClient,
+                            if (_clientsReceiveFirstUDPPackets.Remove(idClient,
                                 out Client.IReceiveFirstUDPPacket client))
                             {
                                 client.Receive(buffers[index]);
@@ -165,7 +143,14 @@ public sealed class ReceiveUDPPacketForClients : Controller.LocalField<string[]>
                             else Exception(Ex.x07, idClient);
 #endif
                         }
+#if EXCEPTION
+                        else Exception(Ex.x11, ServiceUDPMessage.ClientToServer.Connecting.LENGTH,
+                            buffers[index].Length);
+#endif
                     }
+#if EXCEPTION
+                    else Exception("Неизвестный тип UDP пакета.");
+#endif
                 }
             },
             Header.UDP_WORK_EVENT);
@@ -244,11 +229,10 @@ public sealed class ReceiveUDPPacketForClients : Controller.LocalField<string[]>
         /// <summary>
         /// Подписывает клиетa на получение первого UDP сообщения.
         /// listen_echo
-        /// [in ulong - id клиента, bool - true(subscribe)/false(unsubscribe) 
-        /// Client.Main.IReceiveFirstUDPPacket способ передач пакета клиенту.
+        /// [in ulong - id клиента, Client.Main.IReceiveFirstUDPPacket способ передач пакета клиенту.
         /// out пустое эхо сообщающее что клинт подписан]
         /// </summary>
-        public const string LE_SUBSCRIBE_OR_UNSUBSCRIBE_CLIENT_RECEIVE_FIRST_UDP_PACKET
+        public const string LE_SUBSCRIBE_CLIENT_RECEIVE_FIRST_UDP_PACKET
             = "Subscribe/Unsubscribe client receive first udp packet";
 
         ///<summary>
@@ -297,7 +281,8 @@ public sealed class ReceiveUDPPacketForClients : Controller.LocalField<string[]>
         public const string x09 = @"Клиент {0} с таким id:{1} уже подписался и ожидает первый UDP пакет.";
         public const string x10 = @"Вы пытаетесь отписать клинта {0} с id:{1}, " +
             @"но данный клинт не подписан и не ожидает первый UDP пакет.";
-        public const string x11 = @"";
+        public const string x11 = @"Длина первого UDP пакета должна быть равна {0}, " +
+                            @" вместо этого пришол покет длиной равной {1}";
     }
 }
 
@@ -356,7 +341,7 @@ public sealed class ReceiveUDPPacket : Controller.Board.LocalField<string[]>
                                 if (clientBytesBuffers[index].Length <= UDPHeader.MAX_LENGTH)
                                 {
                                     // Узнаем тип сообщения. Получаем левые два бита.
-                                    byte messageType = (byte)(clientBytesBuffers[index][UDPHeader.TYPE_INDEX] >> 6);
+                                    byte messageType = (byte)(clientBytesBuffers[index][UDPHeader.TYPE_INDEX] >> 7);
 
                                     clientMessageTypeBuffers[index] = messageType;
 
@@ -401,7 +386,7 @@ public sealed class ReceiveUDPPacket : Controller.Board.LocalField<string[]>
 #if EXCEPTION
                             else
                             {
-                                Exception(Ex.x01, UDPHeader.MIN_LENGTH, clientBytesBuffers.Length);
+                                Exception(Ex.x01, UDPHeader.MIN_LENGTH, clientBytesBuffers[index].Length);
                             }
 #endif
                         }

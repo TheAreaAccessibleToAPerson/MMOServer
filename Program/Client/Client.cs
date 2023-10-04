@@ -11,8 +11,8 @@ public sealed class Client : ClientService
         input_to(ref I_TCPMessageProcessing, Header.SEND_SSL_MESSAGE_EVENT, SSLMessageProcess);
         input_to(ref I_UDPMessageProcessing, Header.SEND_UDP_MESSAGE_EVENT, UDPMessageProcess);
 
-        send_echo_3_0(ref I_subscribeOrUnsubscribeToReceiveFirstUDPPacket, 
-            ReceiveUDPPacketForClients.BUS.LE_SUBSCRIBE_OR_UNSUBSCRIBE_CLIENT_RECEIVE_FIRST_UDP_PACKET)
+        send_echo_2_0(ref I_subscribeOrUnsubscribeToReceiveFirstUDPPacket, 
+            ReceiveUDPPacketForClients.BUS.LE_SUBSCRIBE_CLIENT_RECEIVE_FIRST_UDP_PACKET)
                 .output_to(SettingConnection, Header.WORK_WITCH_OBJECTS_EVENT);
 
         send_echo_2_0(ref I_subscribeToReceiveUDPPackets,
@@ -23,7 +23,7 @@ public sealed class Client : ClientService
     void Start()
     {
         /*****************ПЕРЕДЕЛАТЬ************************/
-        new Random().NextBytes(FirstUDPPacketKey);
+        new Random().NextBytes(FirstUDPPacketData);
 
         if (ClientUniqueID.Get(out uint id))
             ID = id;

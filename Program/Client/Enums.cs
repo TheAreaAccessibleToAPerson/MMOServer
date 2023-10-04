@@ -25,16 +25,3 @@ public enum RequestTCPType
     // Запросить первый UDP пакет.
     FirstUDPPacket,
 }
-
-/// <summary>
-/// Данный тип используется для того что бы определить мы подписываемся 
-/// или отписываемся от прослушки первого UDP пакета.
-/// </summary>
-public enum ReceiveFirstUDPPacketType
-{
-    None = 1,
-
-    Subscribe,
-
-    Unsubscribe,
-}
