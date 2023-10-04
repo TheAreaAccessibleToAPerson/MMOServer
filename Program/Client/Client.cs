@@ -11,11 +11,11 @@ public sealed class Client : ClientService
         input_to(ref I_TCPMessageProcessing, Header.SEND_SSL_MESSAGE_EVENT, SSLMessageProcess);
         input_to(ref I_UDPMessageProcessing, Header.SEND_UDP_MESSAGE_EVENT, UDPMessageProcess);
 
-        send_echo_2_0(ref I_subscribeOrUnsubscribeToReceiveFirstUDPPacket, 
+        send_echo_2_0(ref I_subscribeToReceiveFirstUDPPacket, 
             ReceiveUDPPacketForClients.BUS.LE_SUBSCRIBE_CLIENT_RECEIVE_FIRST_UDP_PACKET)
                 .output_to(SettingConnection, Header.WORK_WITCH_OBJECTS_EVENT);
 
-        send_echo_2_0(ref I_subscribeToReceiveUDPPackets,
+        send_echo_3_0(ref I_subscribeToReceiveUDPPackets,
             ReceiveUDPPacketForClients.BUS.LE_SUBSCRIBE_CLIENT_RECEIVE_UDP_PACKETS)
                 .output_to(SettingConnection, Header.WORK_WITCH_OBJECTS_EVENT);
     }
@@ -23,8 +23,6 @@ public sealed class Client : ClientService
     void Start()
     {
         /*****************ПЕРЕДЕЛАТЬ************************/
-        new Random().NextBytes(FirstUDPPacketData);
-
         if (ClientUniqueID.Get(out uint id))
             ID = id;
         else
@@ -54,7 +52,7 @@ public sealed class Client : ClientService
     {
         if (StateInformation.IsCallStart)
         {
-            I_sendSSL.To(new byte[] { 0, 1, ServiceTCPMessage.ServerToClient.CLIENT_DISCONNECTING });
+            //I_sendSSL.To(new byte[] { 0, 1, ServiceTCPMessage.ServerToClient.CLIENT_DISCONNECTING });
         }
 
         IsRunning = false;
@@ -129,6 +127,7 @@ public sealed class Client : ClientService
         do
         {
             length = GetTCPMessageLength(message, index);
+
 #if INFORMATION
             SystemInformation("SplitTCPMessage length:" + length);
 #endif
@@ -139,14 +138,14 @@ public sealed class Client : ClientService
                 if (message.Length == messagesIndex++)
                     Array.Resize(ref messages, messages.Length + 1);
 
-                messages[^1] = message[(index + 2)..(length + 2)];
+                messages[^1] = message[index..(length - 1)];
 
-                index = length + 2;
+                index = length;
             }
             else
             {
 #if EXCEPTION
-                Exception(Ex.x003, index, String.Join(" ", message), ConsoleColor.Red);
+                throw Exception(Ex.x003, index, String.Join(" ", message), ConsoleColor.Red);
 #endif
                 return new byte[0][];
             }
@@ -154,10 +153,8 @@ public sealed class Client : ClientService
         while ((messageLength -= index) > 0);
 
 #if EXCEPTION
-        if (messageLength < 0)
-        {
-            Exception(Ex.x002, message.Length, index, messageLength, ConsoleColor.Red);
-        }
+        if (messageLength < 0) 
+            throw Exception(Ex.x002, message.Length, index, messageLength, ConsoleColor.Red);
 #endif
 
         return messages;
@@ -170,10 +167,10 @@ public sealed class Client : ClientService
     /// <returns></returns>
     private int GetTCPMessageLength(byte[] message, int startIndex)
     {
-        if ((message.Length - startIndex) >= ServiceTCPMessage.MIN_LENGTH)
+        if ((message.Length - startIndex) >= SSL.Header.LENGTH)
         {
-            int i = message[startIndex + TCPHeader.LENGTH_INDEX_2byte] ^
-                (message[startIndex + TCPHeader.LENGTH_INDEX_1byte] << 8);
+            int i = message[startIndex + SSL.Header.DATA_LENGTH_INDEX_1byte] << 8 ^
+                (message[startIndex + SSL.Header.DATA_LENGTH_INDEX_2byte]);
 
 #if INFORMATION
             SystemInformation("GetTCPMessageLength:" + i);
@@ -181,11 +178,8 @@ public sealed class Client : ClientService
 
             return i;
         }
-#if EXCEPTION
-        else
-        {
-            Exception(Ex.x001, ServiceTCPMessage.MIN_LENGTH, message.Length, String.Join(" ", message));
-        }
+#if EXCEPTION 
+        else throw Exception(Ex.x001, SSL.Header.LENGTH, message.Length, String.Join(" ", message));
 #endif
         return 0;
     }
@@ -197,8 +191,8 @@ public sealed class Client : ClientService
         /// <summary>
         /// Данный метод реализует прослушку UDP пакетов от клиeнта.
         /// </summary>
-        /// <param name="packet"></param>
-        void Receive(byte[] packet);
+        /// <param name="message"></param>
+        void Receive(byte[] message);
     }
 
     public interface IReceiveFirstUDPPacket
@@ -207,8 +201,9 @@ public sealed class Client : ClientService
         /// Данный метод реализует прослушку первого UDP пакета от клинта.
         /// ID клиента приходит не в зашифровоном виде.
         /// </summary>
-        /// <param name="packet"></param>
-        void Receive(byte[] packet);
+        /// <param name="message"></param>
+        /// <param name="addressAndPort"></param>
+        void Receive(byte[] message, ulong addressAndPort);
     }
 
     public interface IReceiveRoomMessage

@@ -39,26 +39,32 @@ public sealed class ReceiveUDPPacketForClients : Controller.LocalField<string[]>
             Обьект для нового клинта создан, теперь подпишим его на получения UDP пакетов.
             После чего оповестим об окончании подписании.
         */
-        listen_echo_2_0<ulong, Client.IReceiveUDPPackets>(BUS.LE_SUBSCRIBE_CLIENT_RECEIVE_UDP_PACKETS)
-            .output_to((key, receiveUDPPackets, @return) =>
+        listen_echo_3_0<ulong, Client.IReceiveUDPPackets, uint>(BUS.LE_SUBSCRIBE_CLIENT_RECEIVE_UDP_PACKETS)
+            .output_to((key, receiveUDPPackets, receiveFirstUDPPacketID, @return) =>
             {
                 if (_clientsReceiveUDPPackets.ContainsKey(key))
                 {
 #if INFORMATION
-                    Exception(Ex.x00, key);
+                    throw Exception(Ex.x00, key);
 #endif
                 }
                 else
                 {
+                    if (_clientsReceiveFirstUDPPackets.Remove(receiveFirstUDPPacketID))
+                    {
 #if INFORMATION
-                    SystemInformation
-                        ($"Клиент {@return.GetKey()} подписался на прослушкy UDP пакетов.",
-                                ConsoleColor.Green);
+                        SystemInformation
+                            ($"Клиент {@return.GetKey()} подписался на прослушкy UDP пакетов.",
+                                    ConsoleColor.Green);
 #endif
-                    _clientsReceiveUDPPackets.Add(key, receiveUDPPackets);
+                        _clientsReceiveUDPPackets.Add(key, receiveUDPPackets);
 
-                    // Оповестим что подписка окончена.
-                    @return.To();
+                        // Оповестим что подписка окончена.
+                        @return.To();
+                    }
+#if EXCEPTION
+                    else throw Exception(Ex.x12, receiveFirstUDPPacketID, @return.GetKey());
+#endif
                 }
             },
             Header.UDP_WORK_EVENT);
@@ -79,28 +85,28 @@ public sealed class ReceiveUDPPacketForClients : Controller.LocalField<string[]>
 #endif
                 }
 #if EXCEPTION
-                else Exception(Ex.x06, key);
+                else throw Exception(Ex.x06, key);
 #endif
             },
             Header.UDP_WORK_EVENT);
 
         listen_echo_2_0<uint, Client.IReceiveFirstUDPPacket>
             (BUS.LE_SUBSCRIBE_CLIENT_RECEIVE_FIRST_UDP_PACKET)
-                .output_to((idClient, receive, @return) =>
+                .output_to((receiveFirstPacketID, receive, @return) =>
             {
-                if (_clientsReceiveFirstUDPPackets.ContainsKey(idClient))
+                if (_clientsReceiveFirstUDPPackets.ContainsKey(receiveFirstPacketID))
                 {
 #if EXCEPTION
-                    Exception(Ex.x09, @return.GetKey(), idClient);
+                    throw Exception(Ex.x09, @return.GetKey(), receiveFirstPacketID);
 #endif
                 }
                 else
                 {
-                    _clientsReceiveFirstUDPPackets.Add(idClient, receive);
+                    _clientsReceiveFirstUDPPackets.Add(receiveFirstPacketID, receive);
 
 #if INFORMATION
                     SystemInformation
-                        ($"Клиент id:{idClient}, key:{@return.GetKey()} подписался на получение " +
+                        ($"Клиент id:{receiveFirstPacketID}, key:{@return.GetKey()} подписался на получение " +
                             "первого UDP пакета", ConsoleColor.Green);
 #endif
                     // Сигнализируем что мы успешно подписались.
@@ -109,12 +115,12 @@ public sealed class ReceiveUDPPacketForClients : Controller.LocalField<string[]>
             },
             Header.UDP_WORK_EVENT);
 
-        listen_message<byte[], ulong[], byte[][], int>(BUS.LM_RECEIVE_UDP_PACKETS)
+        listen_message<int[], ulong[], byte[][], int>(BUS.LM_RECEIVE_UDP_PACKETS)
             .output_to((type, keysClient, buffers, length) =>
             {
                 for (int index = 0; index < length; index++)
                 {
-                    if (type[index] == ServiceUDPMessage.ClientToServer.Data.TYPE)
+                    if (type[index] == UDP.Data.ClientToServer.Message.TYPE)
                     {
                         if (_clientsReceiveUDPPackets.TryGetValue(keysClient[index],
                             out Client.IReceiveUDPPackets client))
@@ -122,34 +128,35 @@ public sealed class ReceiveUDPPacketForClients : Controller.LocalField<string[]>
                             client.Receive(buffers[index]);
                         }
 #if EXCEPTION
-                        else Exception(Ex.x08, keysClient[index] >> 32, (int)keysClient[index]);
+                        else throw Exception(Ex.x08, keysClient[index] >> 16, (int)keysClient[index]);
 #endif
                     }
-                    else if (type[index] == ServiceUDPMessage.ClientToServer.Connecting.TYPE)
+                    else if (type[index] == UDP.Data.ClientToServer.Connection.Step1.TYPE)
                     {
-                        if (buffers[index].Length == ServiceUDPMessage.ClientToServer.Connecting.LENGTH)
+                        if (buffers[index].Length == UDP.Data.ClientToServer.Connection.Step1.LENGTH)
                         {
-                            uint idClient = buffers[index][UDPHeader.ID_CLIENT_4byte] ^
-                                (uint)(buffers[index][UDPHeader.ID_CLIENT_3byte] << 8) ^
-                                (uint)(buffers[index][UDPHeader.ID_CLIENT_2byte] << 16) ^
-                                (uint)(buffers[index][UDPHeader.ID_CLIENT_1byte] << 24);
+                            uint idClient = 
+                                buffers[index][UDP.Data.ClientToServer.Connection.Step1.RECEIVE_ID_4byte] ^
+                                (uint)(buffers[index][UDP.Data.ClientToServer.Connection.Step1.RECEIVE_ID_3byte] << 8) ^
+                                (uint)(buffers[index][UDP.Data.ClientToServer.Connection.Step1.RECEIVE_ID_2byte] << 16) ^
+                                (uint)(buffers[index][UDP.Data.ClientToServer.Connection.Step1.RECEIVE_ID_1byte] << 24);
 
-                            if (_clientsReceiveFirstUDPPackets.Remove(idClient,
+                            if (_clientsReceiveFirstUDPPackets.TryGetValue(idClient,
                                 out Client.IReceiveFirstUDPPacket client))
                             {
-                                client.Receive(buffers[index]);
+                                client.Receive(buffers[index], keysClient[index]);
                             }
 #if EXCEPTION
-                            else Exception(Ex.x07, idClient);
+                            else throw Exception(Ex.x07, idClient);
 #endif
                         }
 #if EXCEPTION
-                        else Exception(Ex.x11, ServiceUDPMessage.ClientToServer.Connecting.LENGTH,
+                        else throw Exception(Ex.x11, UDP.Data.ClientToServer.Connection.Step1.LENGTH,
                             buffers[index].Length);
 #endif
                     }
 #if EXCEPTION
-                    else Exception("Неизвестный тип UDP пакета.");
+                    else throw Exception("Неизвестный тип UDP пакета.");
 #endif
                 }
             },
@@ -162,7 +169,7 @@ public sealed class ReceiveUDPPacketForClients : Controller.LocalField<string[]>
                 {
                     if (try_obj(_receiveUDPPacketName))
                     {
-                        Exception(Ex.x05);
+                        throw Exception(Ex.x05);
                     }
                     else
                     {
@@ -180,7 +187,7 @@ public sealed class ReceiveUDPPacketForClients : Controller.LocalField<string[]>
                         }
                     }
                 }
-                else Exception(Ex.x04, infoObj.GetKey(), _receiveUDPPacketName);
+                else throw Exception(Ex.x04, infoObj.GetKey(), _receiveUDPPacketName);
             },
             Header.WORK_WITCH_OBJECTS_EVENT);
 
@@ -191,7 +198,7 @@ public sealed class ReceiveUDPPacketForClients : Controller.LocalField<string[]>
                 {
                     _currentNumberOfAttermpts = 0;
                 }
-                else Exception(Ex.x04, infoObj.GetKey(), _receiveUDPPacketName);
+                else throw Exception(Ex.x04, infoObj.GetKey(), _receiveUDPPacketName);
             },
             Header.WORK_WITCH_OBJECTS_EVENT);
     }
@@ -203,7 +210,7 @@ public sealed class ReceiveUDPPacketForClients : Controller.LocalField<string[]>
             _receiveUDPPacketName = $"{Field[ReceiveUDPPacket.ADDRESS_INDEX]}" +
                 $"{ReceiveUDPPacket._}{Field[ReceiveUDPPacket.PORT_INDEX]}";
         }
-        else Exception(Ex.x03, ReceiveUDPPacket.LOCAL_FIELD_COUNT, Field.Length);
+        else throw Exception(Ex.x03, ReceiveUDPPacket.LOCAL_FIELD_COUNT, Field.Length);
     }
 
     void Start()
@@ -213,7 +220,7 @@ public sealed class ReceiveUDPPacketForClients : Controller.LocalField<string[]>
 
     void Stop()
     {
-        if (_clientsReceiveUDPPackets.Count != 0) Exception(Ex.x02);
+        if (_clientsReceiveUDPPackets.Count != 0) throw Exception(Ex.x02);
     }
 
     public struct BUS
@@ -221,7 +228,7 @@ public sealed class ReceiveUDPPacketForClients : Controller.LocalField<string[]>
         ///<summary>
         /// Принимает UDP пакеты для клиeнтов и имена клентов для которых они предназначены.
         /// listen_message
-        /// [in byte[] тип сообщений, in ulong[] ключи клинтов содержащие аддрес и порт клинта,
+        /// [in int[] тип сообщений, in ulong[] ключи клинтов содержащие аддрес и порт клинта,
         /// in byte[][] сообщения, in int длина массива массивов]
         ///</summary>
         public const string LM_RECEIVE_UDP_PACKETS = "Receive udp packets";
@@ -229,11 +236,12 @@ public sealed class ReceiveUDPPacketForClients : Controller.LocalField<string[]>
         /// <summary>
         /// Подписывает клиетa на получение первого UDP сообщения.
         /// listen_echo
-        /// [in ulong - id клиента, Client.Main.IReceiveFirstUDPPacket способ передач пакета клиенту.
+        /// [in uing - id клиента, 
+        ///  Client.Main.IReceiveFirstUDPPacket способ передач пакета клиенту.
         /// out пустое эхо сообщающее что клинт подписан]
         /// </summary>
         public const string LE_SUBSCRIBE_CLIENT_RECEIVE_FIRST_UDP_PACKET
-            = "Subscribe/Unsubscribe client receive first udp packet";
+            = "Subscribe client receive first udp packet";
 
         ///<summary>
         /// Принимает от клиeнта его имя и способ передачи ему UDP пакетов.
@@ -243,7 +251,7 @@ public sealed class ReceiveUDPPacketForClients : Controller.LocalField<string[]>
         /// [out пустой это для оповещения]
         ///</summary>
         public const string LE_SUBSCRIBE_CLIENT_RECEIVE_UDP_PACKETS
-            = "Subscribe client receive udp packet";
+            = "Subscribe client receive udp packets";
 
         ///<summary>
         /// Отписывает клинта от прослушки UDP пакетов.
@@ -283,6 +291,17 @@ public sealed class ReceiveUDPPacketForClients : Controller.LocalField<string[]>
             @"но данный клинт не подписан и не ожидает первый UDP пакет.";
         public const string x11 = @"Длина первого UDP пакета должна быть равна {0}, " +
                             @" вместо этого пришол покет длиной равной {1}";
+        public const string x12 = @"В момент подписки на прослушку входящих UDP пакетов мы должны отписаться " +
+            @" от прослушки первого UDP пакета для этого мы используем ReceiveFirstUDPPacketID : {0} созданый у " +
+                " клинта {1}, но в данный момент мы не подписаны туда, скорее всего нарушина логическа последовательность " +
+                    " установления связи или мы продублировали данную операцию.";
+        public const string x13 = @"";
+        public const string x14 = @"";
+        public const string x15 = @"";
+        public const string x16 = @"";
+        public const string x17 = @"";
+        public const string x18 = @"";
+        public const string x19 = @"";
     }
 }
 
@@ -299,7 +318,7 @@ public sealed class ReceiveUDPPacket : Controller.Board.LocalField<string[]>
 
     private bool _isRunning = true;
 
-    private IInput<byte[], ulong[], byte[][], int> i_sendPacketsToClients;
+    private IInput<int[], ulong[], byte[][], int> i_sendPacketsToClients;
     private IInput i_restartCurrentObject;
     private IInput i_resetNumberOfAttempts;
 
@@ -322,41 +341,43 @@ public sealed class ReceiveUDPPacket : Controller.Board.LocalField<string[]>
                     {
                         Console("AVAILABLE:" + available);
 
-                        byte[] clientMessageTypeBuffers = new byte[2048];
-                        ulong[] clientMessageAddressAndPortBuffers = new ulong[2048];
-                        byte[][] clientBytesBuffers = new byte[2048][];
+                        int[] types = new int[2048];
+                        ulong[] addr = new ulong[2048];
+                        byte[][] message = new byte[2048][];
 
                         int index = 0;
                         do
                         {
-                            clientBytesBuffers[index] = _server.Receive(ref _remoteIpEndPoint);
-                            available -= clientBytesBuffers[index].Length;
+                            message[index] = _server.Receive(ref _remoteIpEndPoint);
+                            available -= message[index].Length;
 
                             // Проверяем пришедшее сообщение на соответвие минимально
                             // допустимому размеру сообщения.
-                            if (clientBytesBuffers[index].Length >= UDPHeader.MIN_LENGTH)
+                            if (message[index].Length >= UDP.Header.LENGTH)
                             {
                                 // Проверяем пришедшее сообщение на соответвие максимально
                                 // допустимому размеру сообщения.
-                                if (clientBytesBuffers[index].Length <= UDPHeader.MAX_LENGTH)
+                                if (message[index].Length <= UDP.Header.MAX_LENGTH)
                                 {
-                                    // Узнаем тип сообщения. Получаем левые два бита.
-                                    byte messageType = (byte)(clientBytesBuffers[index][UDPHeader.TYPE_INDEX] >> 7);
 
-                                    clientMessageTypeBuffers[index] = messageType;
+                                    int type = message[index][UDP.Header.DATA_TYPE_INDEX_1byte] << 8 ^
+                                               message[index][UDP.Header.DATA_TYPE_INDEX_2byte];
+
+                                    types[index] = (byte)type;
+
+                                    addr[index] =
+                                        (ulong)(_remoteIpEndPoint.Address.Address << 16) ^
+                                        (ulong)_remoteIpEndPoint.Port;
 
 #if INFORMATION
                                     SystemInformation("PACKET", ConsoleColor.Yellow);
 #endif
 
-                                    if (messageType == ServiceUDPMessage.ClientToServer.Data.TYPE)
+                                    if (type == UDP.Data.ClientToServer.Message.TYPE)
                                     {
 #if INFORMATION
                                         SystemInformation("Пришел пакет с полезными данными.", ConsoleColor.Green);
 #endif
-                                        clientMessageAddressAndPortBuffers[index] =
-                                            (ulong)(_remoteIpEndPoint.Address.Address << 32) ^
-                                            (ulong)_remoteIpEndPoint.Port;
                                     }
 #if INFORMATION
                                     /*
@@ -364,37 +385,39 @@ public sealed class ReceiveUDPPacket : Controller.Board.LocalField<string[]>
                                      и порт выделил NAT. Мы просто передаем содержимое массива клиeнту
                                      который уже ожидает его.
                                     */
-                                    else if (messageType == ServiceUDPMessage.ClientToServer.Connecting.TYPE)
+                                    else if (type == UDP.Data.ClientToServer.Connection.Step1.TYPE)
                                     {
                                         SystemInformation("Пришел первый UDP пакет.", ConsoleColor.Green);
                                     }
 #endif
 
 #if EXCEPTION
-                                    else Exception(Ex.x03, messageType);
+                                    else throw Exception(Ex.x03, type);
 #endif
 
                                     if ((++index) == 2048) break;
+
+                                    i_sendPacketsToClients.To(types, addr, message,index);
                                 }
 #if EXCEPTION
                                 else
                                 {
-                                    Exception(Ex.x02, UDPHeader.MAX_LENGTH, clientBytesBuffers[index].Length);
+                                    throw Exception(Ex.x02, UDP.Header.MAX_LENGTH, message[index].Length);
                                 }
 #endif
                             }
 #if EXCEPTION
                             else
                             {
-                                Exception(Ex.x01, UDPHeader.MIN_LENGTH, clientBytesBuffers[index].Length);
+                                throw Exception(Ex.x01, UDP.Header.LENGTH, message[index].Length);
                             }
 #endif
                         }
                         while (available > 0);
 
                         i_sendPacketsToClients.To
-                            (clientMessageTypeBuffers, clientMessageAddressAndPortBuffers,
-                                clientBytesBuffers, index);
+                            (types, addr,
+                                message, index);
                     }
                 }
             }

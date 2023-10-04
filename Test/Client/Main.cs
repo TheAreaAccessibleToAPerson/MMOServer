@@ -84,6 +84,22 @@ namespace Test
         void Start()
         {
             ReadLine.Start(this);
+
+            //i_sendTCP.To(new byte[SSL.Data.ClientToServer.Connection.Step1.LENGTH]
+            i_sendTCP.To(new byte[SSL.Data.ClientToServer.Connection.Step1.LENGTH]
+            {
+                /*********************HEADER***********************/
+                SSL.Data.ClientToServer.Connection.Step1.LENGTH >> 8,
+                SSL.Data.ClientToServer.Connection.Step1.LENGTH,
+
+                SSL.Data.ClientToServer.Connection.Step1.TYPE >> 8,
+                SSL.Data.ClientToServer.Connection.Step1.TYPE,
+                /**************************************************/
+                /*********************DATA*************************/
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+                /**************************************************/
+            });
         }
 
         void Configurate()
@@ -159,41 +175,57 @@ namespace Test
 
         private void TCPMessageProcess(byte[] message)
         {
+#if INFORMATION
             Console("Message");
+#endif
             byte[][] messages = SplitTCPMessage(message);
+#if INFORMATION
             Console("MessageLength:" + message.Length);
+#endif
 
             for (int i = 0; i < messages.Length; i++)
             {
                 if (messages[i].Length == 0) continue;
 
-                if (message[TCPHeader.TYPE_INDEX] ==
-                    ServiceTCPMessage.ServerToClient.Connecting.TYPE)
+                int type = message[SSL.Header.DATA_TYPE_INDEX_1byte] << 8 ^
+                           message[SSL.Header.DATA_TYPE_INDEX_2byte];
+
+#if INFORMATION
+                SystemInformation($"type message:{type}", ConsoleColor.Green);
+#endif
+
+                if (type == SSL.Data.ServerToClient.Connection.Step1.TYPE)
                 {
-                    SystemInformation("RequestFirstUDPPacket", ConsoleColor.Green);
-
-                    byte[] t = new byte
-                    [
-                        ServiceUDPMessage.ClientToServer.Connecting.LENGTH
-                    ];
-
-                    int messageLength = ServiceTCPMessage.ServerToClient.Connecting.LENGTH;
-                    int messageType = ServiceTCPMessage.ServerToClient.Connecting.TYPE;
-
-                    t[2] = message[2]; t[3] = message[3];
-
-                    // В первый байт нужно указать что это не зашифрованое сообщение.
-                    t[UDPHeader.TYPE_INDEX] = (byte)(t[UDPHeader.TYPE_INDEX] ^ 
-                        (byte)(ServiceUDPMessage.ClientToServer.Connecting.TYPE << 7));
-
-                    try
+#if INFORMATION
+                    SystemInformation("Access, request first udp packet", ConsoleColor.Green);
+#endif
+                    int result = message[SSL.Data.ServerToClient.Connection.Step1.RESULT_INDEX];
+                    if (result == SSL.Data.ServerToClient.Connection.Step1.Result.ACCESS)
                     {
-                        i_sendUDP.To(t);
+                        i_sendUDP.To(new byte[UDP.Data.ClientToServer.Connection.Step1.LENGTH]
+                        {
+                        /*********************HEADER***********************/
+                        UDP.Data.ClientToServer.Connection.Step1.LENGTH >> 8,
+                        UDP.Data.ClientToServer.Connection.Step1.LENGTH,
+
+                        UDP.Data.ClientToServer.Connection.Step1.TYPE >> 8,
+                        UDP.Data.ClientToServer.Connection.Step1.TYPE,
+                        /**************************************************/
+
+                        /*********************DATA*************************/
+                        messages[i][SSL.Data.ServerToClient.Connection.Step1.RECEIVE_ID_INDEX_1byte],
+                        messages[i][SSL.Data.ServerToClient.Connection.Step1.RECEIVE_ID_INDEX_1byte],
+                        messages[i][SSL.Data.ServerToClient.Connection.Step1.RECEIVE_ID_INDEX_1byte],
+                        messages[i][SSL.Data.ServerToClient.Connection.Step1.RECEIVE_ID_INDEX_1byte]
+                            /**************************************************/
+                        });
                     }
-                    catch { destroy(); }
+#if EXCEPTION
+                    else throw new Exception(type.ToString());
+#endif
                 }
 #if EXCEPTION
-                else throw new Exception(messages[TCPHeader.TYPE_INDEX].ToString());
+                else throw new Exception(type.ToString());
 #endif
             }
         }
@@ -223,7 +255,9 @@ namespace Test
                     if (message.Length == messagesIndex++)
                         Array.Resize(ref messages, messages.Length + 1);
 
-                    messages[^1] = message;
+                    messages[^1] = message[index..(length - 1)];
+
+                    index = length;
                 }
                 else
                 {
@@ -254,17 +288,14 @@ namespace Test
         /// <returns></returns>
         private int GetTCPMessageLength(byte[] message, int startIndex)
         {
-            if ((message.Length - startIndex) >= ServiceTCPMessage.MIN_LENGTH)
-                return message[TCPHeader.LENGTH_INDEX_2byte] ^
-                    (message[TCPHeader.LENGTH_INDEX_1byte] << 8);
-#if EXCEPTION
-            else
+            if ((message.Length - startIndex) >= SSL.Header.LENGTH)
             {
-                string m = "";
-                for (int i = startIndex; i < message.Length; i++) m += $"{message[i]} ";
-
-                Exception(Ex.x001, ServiceTCPMessage.MIN_LENGTH, message.Length, m);
+                return message[startIndex + SSL.Header.DATA_LENGTH_INDEX_2byte] ^
+                    message[startIndex + SSL.Header.DATA_LENGTH_INDEX_1byte] << 8;
             }
+#if EXCEPTION
+            else throw Exception(Ex.x001, SSL.Header.LENGTH, message.Length,
+                    String.Join(" ", message), ConsoleColor.Red);
 #endif
             return 0;
         }

@@ -22,12 +22,6 @@ public abstract class ClientService : ClientProperty,
     /// </summary>
     protected uint RegisterFirstUDPPacketID = 0;
 
-    /// <summary>
-    /// В первом UDP пакете в качесве полезных данных должно придти данное сообщение в 
-    /// зашифровоном виде.
-    /// </summary>
-    protected byte[] FirstUDPPacketData = new byte[ServiceUDPMessage.VERIFICATION_MESSAGE];
-
     private StateType CurrentState = StateType.None;
 
     protected Socket TCPSocket;
@@ -52,7 +46,7 @@ public abstract class ClientService : ClientProperty,
     /// <summary>
     /// Подписывает клинта на прослушку входящих UDP пакетов.
     /// </summary>
-    protected IInput<ulong, Client.IReceiveUDPPackets> I_subscribeToReceiveUDPPackets;
+    protected IInput<ulong, Client.IReceiveUDPPackets, uint> I_subscribeToReceiveUDPPackets;
 
     /// <summary>
     /// Отписывает клиента из прослушки входящих UDP пакетов.
@@ -62,7 +56,7 @@ public abstract class ClientService : ClientProperty,
     /// <summary>
     /// Подписывает/Отписывает клиента от ожидания первого UDP пакета.
     /// </summary>
-    protected IInput<uint,  Client.IReceiveFirstUDPPacket> I_subscribeOrUnsubscribeToReceiveFirstUDPPacket;
+    protected IInput<uint,  Client.IReceiveFirstUDPPacket> I_subscribeToReceiveFirstUDPPacket;
 
     /// <summary>
     /// Отправляет сообщение по TCP сокету.
@@ -118,18 +112,22 @@ public abstract class ClientService : ClientProperty,
     {
     }
 
-    void Client.IReceiveUDPPackets.Receive(byte[] packet)
+    void Client.IReceiveUDPPackets.Receive(byte[] message)
     {
 #if INFORMATION
         SystemInformation("ReceiveUDPPacket");
 #endif
     }
 
-    void Client.IReceiveFirstUDPPacket.Receive(byte[] packet)
+    void Client.IReceiveFirstUDPPacket.Receive(byte[] message, ulong addressAndPort)
     {
 #if INFORMATION
         SystemInformation("ReceiveFirstUDPPacket");
 #endif
+
+        // В первый байт записано является ли пакет шифрованым или нет.
+        // Вытащим значение без первого байта.
+        //byte i = (byte)((byte)(message[ServiceUDPMessage.ClientToServer.Connecting] << 1) >> 1);
     }
 
 
@@ -153,8 +151,7 @@ public abstract class ClientService : ClientProperty,
             SystemInformation("run subscribe to receiveFirst udp packet.", ConsoleColor.Yellow);
 #endif
 
-            I_subscribeOrUnsubscribeToReceiveFirstUDPPacket.To(RegisterFirstUDPPacketID, 
-                this);
+            I_subscribeToReceiveFirstUDPPacket.To(RegisterFirstUDPPacketID, this);
         }
         else if (CurrentState.HasFlag(StateType.SubscribeToReceiveFirstUDPPacket))
         {
@@ -167,28 +164,27 @@ public abstract class ClientService : ClientProperty,
 #if INFORMATION
             SystemInformation("run request client first udp packet.", ConsoleColor.Yellow);
 #endif
-            byte[] m = new byte
-            [
-                TCPHeader.LENGTH_BYTE_COUNT +
-                ServiceTCPMessage.ServerToClient.Connecting.LENGTH
-            ];
+            byte[] m = new byte [SSL.Data.ServerToClient.Connection.Step1.LENGTH]
+            {
+                /*********************HEADER***********************/
+                SSL.Data.ServerToClient.Connection.Step1.LENGTH >> 8,
+                SSL.Data.ServerToClient.Connection.Step1.LENGTH,
 
-            int messageLength = ServiceTCPMessage.ServerToClient.Connecting.LENGTH;
-            int messageType = ServiceTCPMessage.ServerToClient.Connecting.TYPE;
+                SSL.Data.ServerToClient.Connection.Step1.TYPE >> 8,
+                SSL.Data.ServerToClient.Connection.Step1.TYPE,
+                /**************************************************/
 
-            byte[] t = new byte[messageLength];
+                /*********************DATA*************************/
+                SSL.Data.ServerToClient.Connection.Step1.Result.ACCESS,
 
-            t[0] = (byte)(messageLength << 8); t[1] = (byte)messageLength; 
-            t[2] = (byte)(messageType << 8); t[3] = (byte)messageType; 
+                (byte)(RegisterFirstUDPPacketID << 24), 
+                (byte)(RegisterFirstUDPPacketID << 16),
+                (byte)(RegisterFirstUDPPacketID << 8), 
+                (byte)RegisterFirstUDPPacketID,
+                /**************************************************/
+            };
 
-            t[4] = (byte)(RegisterFirstUDPPacketID << 24); t[5] = (byte)(RegisterFirstUDPPacketID << 16);
-            t[6] = (byte)(RegisterFirstUDPPacketID << 8); t[7] = (byte)RegisterFirstUDPPacketID;
-
-            int index = 0;
-            for (int i = 8; i < messageLength; i++)
-                t[i] = FirstUDPPacketData[index++];
-
-            I_sendSSL.To(t);
+            I_sendSSL.To(m);
         }
         else if (CurrentState.HasFlag(StateType.RequestFirstUDPPacket))
         {
@@ -202,7 +198,7 @@ public abstract class ClientService : ClientProperty,
             SystemInformation("run subscribe receive udp packets.", ConsoleColor.Yellow);
 #endif
 
-            I_subscribeToReceiveUDPPackets.To(RemoteUDPAddressAndPort, this);
+            I_subscribeToReceiveUDPPackets.To(RemoteUDPAddressAndPort, this, RegisterFirstUDPPacketID);
         }
         else if (CurrentState.HasFlag(StateType.SubscribeToReceiveUDPPackets))
         {

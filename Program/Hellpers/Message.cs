@@ -27,6 +27,9 @@ MESSAGE DATA 9 byte
 
 */
 
+using System.ComponentModel.DataAnnotations;
+
+/*
 public struct UDPHeader
 {
 
@@ -142,139 +145,217 @@ public struct UDPHeader
         public const int ID_MESSAGE_INDEX_4byte = 10;
     }
 }
-
-public struct TCPHeader
-{
-    /// <summary>
-    /// Количесво байтов в которых содержиться размер  TCP сообщения.
-    /// </summary>
-    public const int LENGTH_BYTE_COUNT = 2;
-
-    /// <summary>
-    /// Приходящее сообщение по протоколу TCP обязательно имеет заголовок.
-    /// Первые два байта указывают размер сообщения.
-    /// Указывает индекс на первый байт.
-    /// </summary>
-    public const int LENGTH_INDEX_1byte = 0;
-
-    /// <summary>
-    /// Приходящее сообщение по протоколу TCP обязательно имеет заголовок.
-    /// Первые два байта указывают размер сообщения.
-    /// Указывает индекс на второй байт.
-    /// </summary>
-    public const int LENGTH_INDEX_2byte = 1;
-
-    /// <summary>
-    /// Указывает на тип сообщения.
-    /// </summary>
-    public const int TYPE_INDEX = 0;
-
-}
-
-public struct ServiceTCPMessage
-{
-    /// <summary>
-    /// Минимально возможный размер сообщения который может придти по протоколу TCP.
-    /// </summary>
-    public const int MIN_LENGTH = 3;
-
-    public struct ServerToClient
-    {
-        /// <summary>
-        /// Превышено время ожидания.
-        /// </summary>
-        public const int TIME_OUT = 1;
-
-        /// <summary>
-        /// Клиет отключeн.
-        /// </summary>
-        public const int CLIENT_DISCONNECTING = 2;
-
-        /// <summary>
-        /// Высылает клинту его ID и уникальный ключ, 
-        /// в ответ ожидаем UDP сообщение c зашифрованым ключом.
-        /// </summary>
-        public struct Connecting
-        {
-            public const int TYPE = 0;
-
-            /// <summary>
-            /// Сообщение будет содержать 
-            /// 1) 2 байта - длина сообщения.
-            /// 2) 2 байта - Тип сообщения
-            /// 3) 4 байта - id по которому зарегистрировался клинт ожидающий первый UDP пакет.
-            /// 4) Зашифрованое сообщение которое вернется по UDP.
-            /// </summary>
-            public const int LENGTH = 2 + 2 + 4 + ServiceUDPMessage.VERIFICATION_MESSAGE;
-        }
-
-    }
-
-    public struct ClientToServer
-    {
-    }
-}
-
-/*
-   HEADER MESSAGE 6 byte
-----------------------
-   message_length
-1)[256, 256, 
-     id client
-2) 256, 256, 256, 256]
-----------------------
-MESSAGE DATA 5 byte
-----------------------
-   capsule count
-3)[256
-   id message
-4)256, 256, 256, 256]
-----------------------
-   CAPSUL HEADER
-----------------------
-   capsul length
-5)[256
-   capsul type
-6) 
-[
-   100 - position
-]
-7) DATA ...
-
 */
-public struct ServiceUDPMessage
+
+
+namespace SSL
 {
     /// <summary>
-    /// При запросе у клинта первого UDP сообщения вы высылаем ему сообщение, которое тот зашифрует
-    /// и вышлет обратно в на сервер.
+    /// Заголовок 4 байта
+    /// 1) 2 байта - длина сообщения.
+    /// 2) 2 байта - тип сообщения.
     /// </summary>
-    public const int VERIFICATION_MESSAGE = 25;
-
-    public struct ClientToServer
+    public struct Header
     {
-        public struct Connecting
-        {
-            /// <summary>
-            /// Данный тип сообщение означает что пришло первый UDP пакет от клиeнта.
-            /// </summary>
-            public const int TYPE = 1;
+        /// <summary>
+        /// Длина заголовка.
+        /// </summary>
+        public const int LENGTH = 4;
 
-            /// <summary>
-            /// Длина сообщения(записывается в 15 байтах). 
-            /// 2 - байта тип.
-            /// 4 - байта /// id под которым клиент прослушивает первый UDP пакет
-            ///  + KEY_LENGTH - длина зашифрованого ключа.
-            /// </summary>
-            public const int LENGTH = TCPHeader.LENGTH_BYTE_COUNT + 8 + ServiceUDPMessage.VERIFICATION_MESSAGE;
-        }
-        public struct Data
+        /// <summary>
+        /// Индекс который указывает на первый байт хранящий длину всего сообщения.
+        /// </summary>
+        public const int DATA_LENGTH_INDEX_1byte = 0;
+        /// <summary>
+        /// Индекс который указывает на второй байт хранящий длину всего сообщения.
+        /// </summary>
+        public const int DATA_LENGTH_INDEX_2byte = 1;
+        /// <summary>
+        /// Индекс который указывает на первый байт хранящий тип сообщения.
+        /// </summary>
+        public const int DATA_TYPE_INDEX_1byte = 2;
+        /// <summary>
+        /// Индекс который указывает на второй байт хранящий тип сообщения.
+        /// </summary>
+        public const int DATA_TYPE_INDEX_2byte = 3;
+    }
+
+    public struct Data
+    {
+        public struct ServerToClient
         {
-            /// <summary>
-            /// Данный тип сообщения означает что пришли полезные данные.
-            /// </summary>
-            public const int TYPE = 0;
+            public struct Connection
+            {
+                /// <summary>
+                /// 1)1 байт - результат.
+                /// 2)4 байта - если результат удвалитварительный, то эти данные 
+                ///     будут хранить ID под которму сервер прослушивает первый UDP пакет.
+                ///     иначе эти поля будут пустые.
+                /// </summary>
+                public struct Step1
+                {
+                    public const int TYPE = (int)Data.Type.ServerToClientConnectionStep1;
+                    public const int LENGTH = Header.LENGTH + 5;
+
+                    public const int RESULT_INDEX = Header.LENGTH;
+
+                    public const int RECEIVE_ID_INDEX_1byte = RESULT_INDEX + 1;
+                    public const int RECEIVE_ID_INDEX_2byte = RECEIVE_ID_INDEX_1byte + 1;
+                    public const int RECEIVE_ID_INDEX_3byte = RECEIVE_ID_INDEX_2byte + 1;
+                    public const int RECEIVE_ID_INDEX_4byte = RECEIVE_ID_INDEX_3byte + 1;
+
+
+                    /// <summary>
+                    /// Результат авторизации.
+                    /// </summary>
+                    public struct Result
+                    {
+                        public const int ACCESS = 1;
+                        public const int LOGIN_ERROR = 2;
+                        public const int PASSWORD_ERROR = 3;
+
+                    }
+                }
+            }
+
+            public struct Message
+            {
+            }
+
+            public struct Disconnection
+            {
+            }
+        }
+
+        public struct ClientToServer
+        {
+            public struct Connection
+            {
+                /// <summary>
+                /// Первый шаг:Клиент устанавливает соединение.
+                /// 1) 16 - логин.
+                /// 2) 16 - пароль.
+                /// </summary>
+                public struct Step1
+                {
+                    public const int TYPE = (int)Data.Type.ClientToServerConnectionStep1;
+                    public const int LENGTH = Header.LENGTH + LOGIN_LENGTH + PASSWORD_LENGTH;
+
+                    public const int LOGIN_START_INDEX = Header.LENGTH;
+                    public const int LOGIN_LENGTH = 16;
+
+                    public const int PASSWORD_START_INDEX = LOGIN_START_INDEX + LOGIN_LENGTH;
+                    public const int PASSWORD_LENGTH = 16;
+                }
+            }
+
+            public struct Message
+            {
+            }
+
+            public struct Disconnection
+            {
+            }
+        }
+        public enum Type
+        {
+            ServerToClientConnectionStep1,
+
+            ClientToServerConnectionStep1,
+        }
+
+    }
+}
+
+namespace UDP
+{
+    public struct Header
+    {
+        /// <summary>
+        /// Длина заголовка.
+        /// </summary>
+        public const int LENGTH = 4;
+
+        /// <summary>
+        /// Максимальная длина.
+        /// </summary>
+        public const int MAX_LENGTH = 512;
+
+        /// <summary>
+        /// Индекс который указывает на первый байт хранящий длину всего сообщения.
+        /// </summary>
+        public const int DATA_LENGTH_INDEX_1byte = 0;
+        /// <summary>
+        /// Индекс который указывает на второй байт хранящий длину всего сообщения.
+        /// </summary>
+        public const int DATA_LENGTH_INDEX_2byte = 1;
+        /// <summary>
+        /// Индекс который указывает на первый байт хранящий тип сообщения.
+        /// </summary>
+        public const int DATA_TYPE_INDEX_1byte = 2;
+        /// <summary>
+        /// Индекс который указывает на второй байт хранящий тип сообщения.
+        /// </summary>
+        public const int DATA_TYPE_INDEX_2byte = 3;
+    }
+
+    public struct Data
+    {
+        public struct ServerToClient
+        {
+            public struct Connection
+            {
+                public struct Step1
+                {
+                }
+            }
+
+            public struct Message
+            {
+            }
+
+            public struct Disconnection
+            {
+            }
+        }
+        public struct ClientToServer
+        {
+            public struct Connection
+            {
+                /// <summary>
+                /// Начинает высылать UDP пакеты пока по SSL.Connection.Step2 не будет получено
+                /// сообщение что пакет был доставлен.
+                /// </summary>
+                public struct Step1
+                {
+                    public const int TYPE = (int)Data.Type.ClientToServerConnectionStep1;
+                    public const int LENGTH = Header.LENGTH + 4;
+
+                    public const int RECEIVE_ID_1byte = Header.LENGTH;
+                    public const int RECEIVE_ID_2byte = RECEIVE_ID_1byte + 1;
+                    public const int RECEIVE_ID_3byte = RECEIVE_ID_2byte + 1;
+                    public const int RECEIVE_ID_4byte = RECEIVE_ID_3byte + 1;
+                }
+            }
+
+            public struct Message
+            {
+               public const int TYPE = (int)Type.Message;
+            }
+
+            public struct Disconnection
+            {
+            }
+        }
+
+        public enum Type
+        {
+            ClientToServerConnectionStep1,
+
+            Message,
         }
     }
+
 }
 
 public static class Message
