@@ -1,24 +1,21 @@
 using Butterfly;
 
-namespace World 
+public sealed class World : Controller
 {
-    public sealed class Main : Controller
+    void Construction()
     {
-        void Construction()
-        {
-            obj<RoomsManager>("RoomsManager");
-        }
+        obj<RoomsManager>("RoomsManager");
+    }
 
-        void Start()
-        {
-        }
+    void Start()
+    {
+    }
 
-        void Configurate()
-        {
-        }
+    void Configurate()
+    {
+    }
 
-        public struct BUS 
-        {
-        }
+    public struct BUS
+    {
     }
 }

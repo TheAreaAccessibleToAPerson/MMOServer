@@ -192,7 +192,7 @@ namespace SSL
                 ///     будут хранить ID под которму сервер прослушивает первый UDP пакет.
                 ///     иначе эти поля будут пустые.
                 /// </summary>
-                public struct Step1
+                public struct Step
                 {
                     public const int TYPE = (int)Data.Type.ServerToClientConnectionStep1;
                     public const int LENGTH = Header.LENGTH + 5;
@@ -236,7 +236,7 @@ namespace SSL
                 /// 1) 16 - логин.
                 /// 2) 16 - пароль.
                 /// </summary>
-                public struct Step1
+                public struct Step
                 {
                     public const int TYPE = (int)Data.Type.ClientToServerConnectionStep1;
                     public const int LENGTH = Header.LENGTH + LOGIN_LENGTH + PASSWORD_LENGTH;
@@ -305,7 +305,7 @@ namespace UDP
         {
             public struct Connection
             {
-                public struct Step1
+                public struct Step
                 {
                 }
             }
@@ -326,7 +326,7 @@ namespace UDP
                 /// Начинает высылать UDP пакеты пока по SSL.Connection.Step2 не будет получено
                 /// сообщение что пакет был доставлен.
                 /// </summary>
-                public struct Step1
+                public struct Step
                 {
                     public const int TYPE = (int)Data.Type.ClientToServerConnectionStep1;
                     public const int LENGTH = Header.LENGTH + 4;

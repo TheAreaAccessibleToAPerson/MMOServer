@@ -86,14 +86,14 @@ namespace Test
             ReadLine.Start(this);
 
             //i_sendTCP.To(new byte[SSL.Data.ClientToServer.Connection.Step1.LENGTH]
-            i_sendTCP.To(new byte[SSL.Data.ClientToServer.Connection.Step1.LENGTH]
+            i_sendTCP.To(new byte[SSL.Data.ClientToServer.Connection.Step.LENGTH]
             {
                 /*********************HEADER***********************/
-                SSL.Data.ClientToServer.Connection.Step1.LENGTH >> 8,
-                SSL.Data.ClientToServer.Connection.Step1.LENGTH,
+                SSL.Data.ClientToServer.Connection.Step.LENGTH >> 8,
+                SSL.Data.ClientToServer.Connection.Step.LENGTH,
 
-                SSL.Data.ClientToServer.Connection.Step1.TYPE >> 8,
-                SSL.Data.ClientToServer.Connection.Step1.TYPE,
+                SSL.Data.ClientToServer.Connection.Step.TYPE >> 8,
+                SSL.Data.ClientToServer.Connection.Step.TYPE,
                 /**************************************************/
                 /*********************DATA*************************/
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -111,6 +111,9 @@ namespace Test
 
                 _UDPSocket.Connect(Field[FieldIndex.ADDRESS],
                     Convert.ToInt32(Field[FieldIndex.UDP_PORT]));
+#if INFORMATION
+                SystemInformation($"UDPLocalPort:{((IPEndPoint)_UDPSocket.LocalEndPoint).Port}");
+#endif
             }
             catch (Exception ex)
             {
@@ -194,29 +197,29 @@ namespace Test
                 SystemInformation($"type message:{type}", ConsoleColor.Green);
 #endif
 
-                if (type == SSL.Data.ServerToClient.Connection.Step1.TYPE)
+                if (type == SSL.Data.ServerToClient.Connection.Step.TYPE)
                 {
 #if INFORMATION
                     SystemInformation("Access, request first udp packet", ConsoleColor.Green);
 #endif
-                    int result = message[SSL.Data.ServerToClient.Connection.Step1.RESULT_INDEX];
-                    if (result == SSL.Data.ServerToClient.Connection.Step1.Result.ACCESS)
+                    int result = message[SSL.Data.ServerToClient.Connection.Step.RESULT_INDEX];
+                    if (result == SSL.Data.ServerToClient.Connection.Step.Result.ACCESS)
                     {
-                        i_sendUDP.To(new byte[UDP.Data.ClientToServer.Connection.Step1.LENGTH]
+                        i_sendUDP.To(new byte[UDP.Data.ClientToServer.Connection.Step.LENGTH]
                         {
                         /*********************HEADER***********************/
-                        UDP.Data.ClientToServer.Connection.Step1.LENGTH >> 8,
-                        UDP.Data.ClientToServer.Connection.Step1.LENGTH,
+                        UDP.Data.ClientToServer.Connection.Step.LENGTH >> 8,
+                        UDP.Data.ClientToServer.Connection.Step.LENGTH,
 
-                        UDP.Data.ClientToServer.Connection.Step1.TYPE >> 8,
-                        UDP.Data.ClientToServer.Connection.Step1.TYPE,
+                        UDP.Data.ClientToServer.Connection.Step.TYPE >> 8,
+                        UDP.Data.ClientToServer.Connection.Step.TYPE,
                         /**************************************************/
 
                         /*********************DATA*************************/
-                        messages[i][SSL.Data.ServerToClient.Connection.Step1.RECEIVE_ID_INDEX_1byte],
-                        messages[i][SSL.Data.ServerToClient.Connection.Step1.RECEIVE_ID_INDEX_1byte],
-                        messages[i][SSL.Data.ServerToClient.Connection.Step1.RECEIVE_ID_INDEX_1byte],
-                        messages[i][SSL.Data.ServerToClient.Connection.Step1.RECEIVE_ID_INDEX_1byte]
+                        messages[i][SSL.Data.ServerToClient.Connection.Step.RECEIVE_ID_INDEX_1byte],
+                        messages[i][SSL.Data.ServerToClient.Connection.Step.RECEIVE_ID_INDEX_1byte],
+                        messages[i][SSL.Data.ServerToClient.Connection.Step.RECEIVE_ID_INDEX_1byte],
+                        messages[i][SSL.Data.ServerToClient.Connection.Step.RECEIVE_ID_INDEX_1byte]
                             /**************************************************/
                         });
                     }

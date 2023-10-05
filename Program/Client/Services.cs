@@ -56,7 +56,7 @@ public abstract class ClientService : ClientProperty,
     /// <summary>
     /// Подписывает/Отписывает клиента от ожидания первого UDP пакета.
     /// </summary>
-    protected IInput<uint,  Client.IReceiveFirstUDPPacket> I_subscribeToReceiveFirstUDPPacket;
+    protected IInput<uint, Client.IReceiveFirstUDPPacket> I_subscribeToReceiveFirstUDPPacket;
 
     /// <summary>
     /// Отправляет сообщение по TCP сокету.
@@ -72,11 +72,6 @@ public abstract class ClientService : ClientProperty,
     /// Обрабатывает входящие UDP сообщения.
     /// </summary>
     protected IInput<byte[]> I_UDPMessageProcessing;
-
-    /// <summary>
-    /// Запрос у клиента по TCP.
-    /// </summary>
-    protected IInput<RequestTCPType> I_requestSSL;
 
     /// <summary>
     /// Проверяем не пришло ли, нам сообщение.
@@ -115,21 +110,32 @@ public abstract class ClientService : ClientProperty,
     void Client.IReceiveUDPPackets.Receive(byte[] message)
     {
 #if INFORMATION
-        SystemInformation("ReceiveUDPPacket");
+        SystemInformation("ReceiveUDPPacket.");
 #endif
     }
 
     void Client.IReceiveFirstUDPPacket.Receive(byte[] message, ulong addressAndPort)
     {
 #if INFORMATION
-        SystemInformation("ReceiveFirstUDPPacket");
+        SystemInformation("ReceiveFirstUDPPacket.");
 #endif
 
-        // В первый байт записано является ли пакет шифрованым или нет.
-        // Вытащим значение без первого байта.
-        //byte i = (byte)((byte)(message[ServiceUDPMessage.ClientToServer.Connecting] << 1) >> 1);
-    }
+        if ((ulong)RemoteIPAddress.Address == (addressAndPort >> 16))
+        {
+            RemoteUDPPort = ((byte)(addressAndPort >> 8) << 8) ^ (byte)addressAndPort;
+            RemoteUDPAddressAndPort = addressAndPort;
 
+#if INFORMATION
+            SystemInformation($"first udp packet from address:{RemoteIPAddress}, {RemoteUDPPort}",
+                ConsoleColor.Green);
+#endif
+
+            SettingConnection();
+        }
+#if EXCEPTION
+        else throw Exception(Ex.x007, RemoteIPAddress.ToString(), addressAndPort >> 8 ^ addressAndPort);
+#endif
+    }
 
     /// <summary>
     /// В данном методе будет произведена настройка соединения с клиентом.
@@ -164,22 +170,22 @@ public abstract class ClientService : ClientProperty,
 #if INFORMATION
             SystemInformation("run request client first udp packet.", ConsoleColor.Yellow);
 #endif
-            byte[] m = new byte [SSL.Data.ServerToClient.Connection.Step1.LENGTH]
+            byte[] m = new byte[SSL.Data.ServerToClient.Connection.Step.LENGTH]
             {
                 /*********************HEADER***********************/
-                SSL.Data.ServerToClient.Connection.Step1.LENGTH >> 8,
-                SSL.Data.ServerToClient.Connection.Step1.LENGTH,
+                SSL.Data.ServerToClient.Connection.Step.LENGTH >> 8,
+                SSL.Data.ServerToClient.Connection.Step.LENGTH,
 
-                SSL.Data.ServerToClient.Connection.Step1.TYPE >> 8,
-                SSL.Data.ServerToClient.Connection.Step1.TYPE,
+                SSL.Data.ServerToClient.Connection.Step.TYPE >> 8,
+                SSL.Data.ServerToClient.Connection.Step.TYPE,
                 /**************************************************/
 
                 /*********************DATA*************************/
-                SSL.Data.ServerToClient.Connection.Step1.Result.ACCESS,
+                SSL.Data.ServerToClient.Connection.Step.Result.ACCESS,
 
-                (byte)(RegisterFirstUDPPacketID << 24), 
+                (byte)(RegisterFirstUDPPacketID << 24),
                 (byte)(RegisterFirstUDPPacketID << 16),
-                (byte)(RegisterFirstUDPPacketID << 8), 
+                (byte)(RegisterFirstUDPPacketID << 8),
                 (byte)RegisterFirstUDPPacketID,
                 /**************************************************/
             };
@@ -229,7 +235,8 @@ public abstract class ClientService : ClientProperty,
             @" начале формирования клиента когда состояние выставлено в {0}, но в данный момент оно {1}.";
         public const string x006 = @"Когда придет ответ о том что клиент подписался на получение UDP " +
             @"пакетов его состояние должно быть {0}, но оно {1}.";
-        public const string x007 = @"";
+        public const string x007 = @"Ожидалось что первый UDP пакет придет с адреса {0}, но был прибыл пакет " +
+            @"c адреса {1}.";
         public const string x008 = @"";
         public const string x009 = @"";
         public const string x010 = @"";

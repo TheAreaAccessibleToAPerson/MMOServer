@@ -1,7 +1,4 @@
-namespace World 
+public sealed class RoomSetting
 {
-    public sealed class RoomSetting
-    {
 
-    }
 }

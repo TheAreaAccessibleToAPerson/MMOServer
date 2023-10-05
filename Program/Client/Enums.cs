@@ -1,27 +1,16 @@
 /// <summary>
 /// Состояния в котором находится клиент.
 /// </summary>
-public enum StateType 
+public enum StateType
 {
-    None = 1,
+    None = 4,
 
     // Подписываемся на получение первого UDP пакета.
-    SubscribeToReceiveFirstUDPPacket,
+    SubscribeToReceiveFirstUDPPacket = 8,
 
     // По SSL соединение запросим у клиента первый UDP пакет.
-    RequestFirstUDPPacket,
+    RequestFirstUDPPacket = 16,
 
     // Подписываемся на получение UDP пакетов.
-    SubscribeToReceiveUDPPackets,
-}
-
-/// <summary>
-/// Тип системного TCP сообщения.
-/// </summary>
-public enum RequestTCPType
-{
-    None = 1,
-
-    // Запросить первый UDP пакет.
-    FirstUDPPacket,
+    SubscribeToReceiveUDPPackets = 32
 }

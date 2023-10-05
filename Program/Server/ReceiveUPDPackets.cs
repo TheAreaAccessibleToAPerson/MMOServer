@@ -54,6 +54,10 @@ public sealed class ReceiveUDPPacketForClients : Controller.LocalField<string[]>
                     {
 #if INFORMATION
                         SystemInformation
+                            ($"Клиент {@return.GetKey()} отписался от прослушки первого UDP пакетa.",
+                                    ConsoleColor.Green);
+
+                        SystemInformation
                             ($"Клиент {@return.GetKey()} подписался на прослушкy UDP пакетов.",
                                     ConsoleColor.Green);
 #endif
@@ -128,18 +132,19 @@ public sealed class ReceiveUDPPacketForClients : Controller.LocalField<string[]>
                             client.Receive(buffers[index]);
                         }
 #if EXCEPTION
-                        else throw Exception(Ex.x08, keysClient[index] >> 16, (int)keysClient[index]);
+                        else throw Exception(Ex.x08, keysClient[index] >> 16, 
+                            ((byte)(keysClient[index] >> 8) << 8) ^ (byte)keysClient[index]);
 #endif
                     }
-                    else if (type[index] == UDP.Data.ClientToServer.Connection.Step1.TYPE)
+                    else if (type[index] == UDP.Data.ClientToServer.Connection.Step.TYPE)
                     {
-                        if (buffers[index].Length == UDP.Data.ClientToServer.Connection.Step1.LENGTH)
+                        if (buffers[index].Length == UDP.Data.ClientToServer.Connection.Step.LENGTH)
                         {
                             uint idClient = 
-                                buffers[index][UDP.Data.ClientToServer.Connection.Step1.RECEIVE_ID_4byte] ^
-                                (uint)(buffers[index][UDP.Data.ClientToServer.Connection.Step1.RECEIVE_ID_3byte] << 8) ^
-                                (uint)(buffers[index][UDP.Data.ClientToServer.Connection.Step1.RECEIVE_ID_2byte] << 16) ^
-                                (uint)(buffers[index][UDP.Data.ClientToServer.Connection.Step1.RECEIVE_ID_1byte] << 24);
+                                buffers[index][UDP.Data.ClientToServer.Connection.Step.RECEIVE_ID_4byte] ^
+                                (uint)(buffers[index][UDP.Data.ClientToServer.Connection.Step.RECEIVE_ID_3byte] << 8) ^
+                                (uint)(buffers[index][UDP.Data.ClientToServer.Connection.Step.RECEIVE_ID_2byte] << 16) ^
+                                (uint)(buffers[index][UDP.Data.ClientToServer.Connection.Step.RECEIVE_ID_1byte] << 24);
 
                             if (_clientsReceiveFirstUDPPackets.TryGetValue(idClient,
                                 out Client.IReceiveFirstUDPPacket client))
@@ -151,7 +156,7 @@ public sealed class ReceiveUDPPacketForClients : Controller.LocalField<string[]>
 #endif
                         }
 #if EXCEPTION
-                        else throw Exception(Ex.x11, UDP.Data.ClientToServer.Connection.Step1.LENGTH,
+                        else throw Exception(Ex.x11, UDP.Data.ClientToServer.Connection.Step.LENGTH,
                             buffers[index].Length);
 #endif
                     }
@@ -359,11 +364,15 @@ public sealed class ReceiveUDPPacket : Controller.Board.LocalField<string[]>
                                 // допустимому размеру сообщения.
                                 if (message[index].Length <= UDP.Header.MAX_LENGTH)
                                 {
-
                                     int type = message[index][UDP.Header.DATA_TYPE_INDEX_1byte] << 8 ^
                                                message[index][UDP.Header.DATA_TYPE_INDEX_2byte];
 
-                                    types[index] = (byte)type;
+                                    types[index] = type;
+
+                                    //Console((byte)_remoteIpEndPoint.Address.Address);
+                                    //Console((byte)(_remoteIpEndPoint.Address.Address >> 8));
+                                    //Console((byte)(_remoteIpEndPoint.Address.Address >> 16));
+                                    //Console((byte)(_remoteIpEndPoint.Address.Address >> 24));
 
                                     addr[index] =
                                         (ulong)(_remoteIpEndPoint.Address.Address << 16) ^
@@ -373,19 +382,20 @@ public sealed class ReceiveUDPPacket : Controller.Board.LocalField<string[]>
                                     SystemInformation("PACKET", ConsoleColor.Yellow);
 #endif
 
+#if INFORMATION
                                     if (type == UDP.Data.ClientToServer.Message.TYPE)
                                     {
-#if INFORMATION
                                         SystemInformation("Пришел пакет с полезными данными.", ConsoleColor.Green);
-#endif
                                     }
-#if INFORMATION
+#endif
+
                                     /*
                                      Пришол первый пакет. Он нужен для того что бы узнать какой аддресс
                                      и порт выделил NAT. Мы просто передаем содержимое массива клиeнту
                                      который уже ожидает его.
                                     */
-                                    else if (type == UDP.Data.ClientToServer.Connection.Step1.TYPE)
+#if INFORMATION
+                                    else if (type == UDP.Data.ClientToServer.Connection.Step.TYPE)
                                     {
                                         SystemInformation("Пришел первый UDP пакет.", ConsoleColor.Green);
                                     }
@@ -396,8 +406,6 @@ public sealed class ReceiveUDPPacket : Controller.Board.LocalField<string[]>
 #endif
 
                                     if ((++index) == 2048) break;
-
-                                    i_sendPacketsToClients.To(types, addr, message,index);
                                 }
 #if EXCEPTION
                                 else
@@ -415,9 +423,7 @@ public sealed class ReceiveUDPPacket : Controller.Board.LocalField<string[]>
                         }
                         while (available > 0);
 
-                        i_sendPacketsToClients.To
-                            (types, addr,
-                                message, index);
+                        i_sendPacketsToClients.To (types, addr, message, index);
                     }
                 }
             }

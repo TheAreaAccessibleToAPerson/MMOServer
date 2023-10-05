@@ -6,7 +6,7 @@ public sealed class ClientsManager : Controller
 {
     void Construction()
     {
-        obj<World.Main>("World");
+        obj<World.World>("World");
         obj<ReceiveUDPPacketForClients>("ReceiveUDPPacketForClients", new string[]
             {"127.0.0.1", "15300"});
 

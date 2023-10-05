@@ -1,26 +1,23 @@
 using Butterfly;
 
-namespace World 
+public sealed class RoomsManager : Controller
 {
-    public sealed class RoomsManager : Controller 
+    private readonly Dictionary<string, Room> _rooms
+        = new Dictionary<string, Room>();
+
+    void Construction()
     {
-        private readonly Dictionary<string, Room> _rooms 
-            = new Dictionary<string, Room>();
+        _rooms.Add("Room_A1", obj<Room>("Room_A1"));
+    }
 
-        void Construction()
-        {
-            _rooms.Add("Room_A1", obj<Room>("Room_A1"));
-        }
+    void Start()
+    {
+    }
 
-        void Start()
-        {
-        }
-
-        public struct BUS 
-        {
-            ///<summary>
-            /// 
-            ///</summary>
-        }
+    public struct BUS
+    {
+        ///<summary>
+        /// 
+        ///</summary>
     }
 }
