@@ -27,4 +27,75 @@ public abstract class ClientProperty : Controller.Board.LocalField<TcpClient>
     private int _debilitation_speed_move, _debilitation_physics_defence, _debilitation_magic_defence;
 
     private float _positionX, _positionY, _velocityX, _velocityY = 0;
+
+    /// <summary>
+    /// Уникальный ID для капсулы.
+    /// </summary>
+    private const uint UNIQUE_CAPSULE_ID = 0;
+
+    /// <summary>
+    /// Максимально возможное количесво отправленых сообщений без подтверждения.
+    /// </summary>
+    private const uint MAX_OUTPUT_MESSAGE_COUNT = 256;
+
+    /// <summary>
+    /// Максимально возможно количесво отправленых капсул без подтверждения.
+    /// </summary>
+    private const uint MAX_OUTPUT_CAPSULE_COUNT = 1024;
+
+    /// <summary>
+    /// Количесво Отправленых сообщений.
+    /// </summary>
+    private uint OutputMessagesCount = 0;
+
+    /// <summary>
+    /// Отправленые сообщения.
+    /// </summary>
+    private byte[][] OutputMessages = new byte[MAX_OUTPUT_MESSAGE_COUNT][];
+
+    /// <summary>
+    /// Длина записаного сообщения в OutputMessages.
+    /// </summary>
+    private int[] OutputMessagesLength = new int[MAX_OUTPUT_MESSAGE_COUNT];
+
+    private readonly Dictionary<uint, uint> IndexFromOutputMessage = new Dictionary<uint, uint>(1024);
+
+    private void Acknoledgment(uint ack)
+    {
+    }
+
+    protected void AddCapsule(byte[] capsules)
+    {
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="message"></param>
+    /// <param name="messageLength"></param>
+    protected void SetCapsule(byte[][] capsules)
+    {
+        // Текущий индекс.
+        int index = 0;
+
+        // Капсулы.
+        // length message 1
+        // id message 
+        // data time 9                   
+        // position 8
+        // direction 1
+        // DATA
+        // type 1 Move
+        for (int i = 0; i < capsules.Length; i++)
+        {
+            if (capsules[i].Length < Capsule.Header.LENGTH) break;
+
+            // Тип капсулы.
+
+            uint idCapsule = capsules[i][Capsule.Header.MESSAGE_ID_INDEX_1byte];
+            idCapsule = (idCapsule << 24) ^ capsules[i][Capsule.Header.MESSAGE_ID_INDEX_2byte];
+            idCapsule = (idCapsule << 16) ^ capsules[i][Capsule.Header.MESSAGE_ID_INDEX_3byte];
+            idCapsule = (idCapsule << 8) ^ capsules[i][Capsule.Header.MESSAGE_ID_INDEX_4byte];
+        }
+    }
 }

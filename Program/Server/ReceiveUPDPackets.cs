@@ -71,7 +71,7 @@ public sealed class ReceiveUDPPacketForClients : Controller.LocalField<string[]>
 #endif
                 }
             },
-            Header.UDP_WORK_EVENT);
+            Header.UDP_WORK_LISTEN_EVENT);
 
         /*
             Отписываем клиента от прослушки входящих UDP пакетов.
@@ -92,7 +92,7 @@ public sealed class ReceiveUDPPacketForClients : Controller.LocalField<string[]>
                 else throw Exception(Ex.x06, key);
 #endif
             },
-            Header.UDP_WORK_EVENT);
+            Header.UDP_WORK_LISTEN_EVENT);
 
         listen_echo_2_0<uint, Client.IReceiveFirstUDPPacket>
             (BUS.LE_SUBSCRIBE_CLIENT_RECEIVE_FIRST_UDP_PACKET)
@@ -117,7 +117,7 @@ public sealed class ReceiveUDPPacketForClients : Controller.LocalField<string[]>
                     @return.To();
                 }
             },
-            Header.UDP_WORK_EVENT);
+            Header.UDP_WORK_LISTEN_EVENT);
 
         listen_message<int[], ulong[], byte[][], int>(BUS.LM_RECEIVE_UDP_PACKETS)
             .output_to((type, keysClient, buffers, length) =>
@@ -133,18 +133,17 @@ public sealed class ReceiveUDPPacketForClients : Controller.LocalField<string[]>
                         }
 #if EXCEPTION
                         else throw Exception(Ex.x08, keysClient[index] >> 16, 
-                            ((byte)(keysClient[index] >> 8) << 8) ^ (byte)keysClient[index]);
+                            ushort.MaxValue & (int)keysClient[index]);
 #endif
                     }
                     else if (type[index] == UDP.Data.ClientToServer.Connection.Step.TYPE)
                     {
                         if (buffers[index].Length == UDP.Data.ClientToServer.Connection.Step.LENGTH)
                         {
-                            uint idClient = 
-                                buffers[index][UDP.Data.ClientToServer.Connection.Step.RECEIVE_ID_4byte] ^
-                                (uint)(buffers[index][UDP.Data.ClientToServer.Connection.Step.RECEIVE_ID_3byte] << 8) ^
-                                (uint)(buffers[index][UDP.Data.ClientToServer.Connection.Step.RECEIVE_ID_2byte] << 16) ^
-                                (uint)(buffers[index][UDP.Data.ClientToServer.Connection.Step.RECEIVE_ID_1byte] << 24);
+                            uint idClient = buffers[index][UDP.Data.ClientToServer.Connection.Step.RECEIVE_ID_1byte];
+                            idClient = (idClient << 24) ^ buffers[index][UDP.Data.ClientToServer.Connection.Step.RECEIVE_ID_2byte];
+                            idClient = (idClient << 16) ^ buffers[index][UDP.Data.ClientToServer.Connection.Step.RECEIVE_ID_3byte];
+                            idClient = (idClient << 8) ^ buffers[index][UDP.Data.ClientToServer.Connection.Step.RECEIVE_ID_4byte];
 
                             if (_clientsReceiveFirstUDPPackets.TryGetValue(idClient,
                                 out Client.IReceiveFirstUDPPacket client))
@@ -165,7 +164,7 @@ public sealed class ReceiveUDPPacketForClients : Controller.LocalField<string[]>
 #endif
                 }
             },
-            Header.UDP_WORK_EVENT);
+            Header.UDP_WORK_LISTEN_EVENT);
 
         listen_impuls(BUS.LI_RESTART_RECEIVE_UDP)
             .output_to((infoObj) =>
@@ -364,15 +363,9 @@ public sealed class ReceiveUDPPacket : Controller.Board.LocalField<string[]>
                                 // допустимому размеру сообщения.
                                 if (message[index].Length <= UDP.Header.MAX_LENGTH)
                                 {
-                                    int type = message[index][UDP.Header.DATA_TYPE_INDEX_1byte] << 8 ^
-                                               message[index][UDP.Header.DATA_TYPE_INDEX_2byte];
+                                    int type = message[index][UDP.Header.DATA_TYPE_INDEX];
 
                                     types[index] = type;
-
-                                    //Console((byte)_remoteIpEndPoint.Address.Address);
-                                    //Console((byte)(_remoteIpEndPoint.Address.Address >> 8));
-                                    //Console((byte)(_remoteIpEndPoint.Address.Address >> 16));
-                                    //Console((byte)(_remoteIpEndPoint.Address.Address >> 24));
 
                                     addr[index] =
                                         (ulong)(_remoteIpEndPoint.Address.Address << 16) ^

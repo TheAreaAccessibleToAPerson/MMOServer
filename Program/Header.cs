@@ -3,13 +3,14 @@ using Butterfly;
 public sealed class Header : Controller, ReadLine.IInformation
 {
     public const string WORK_WITCH_OBJECTS_EVENT = "WorkWitchObjectsEvent.";
+
     public const string LISTEN_CLIENTS_EVENT = "ListenClientsEvent.";
 
     /// <summary>
     /// Отвечает за подписку и отписку клиентов от прослушки UDP пакетов
     /// и за прием из потока отвечающего за прослушку UDPSocket.
     /// </summary>
-    public const string UDP_WORK_EVENT = "UdpWork.";
+    public const string UDP_WORK_LISTEN_EVENT = "UdpWork.";
 
     /// <summary>
     /// Отвечает события на котрые подпишутся клиенты для прослушивания сообщений
@@ -27,13 +28,17 @@ public sealed class Header : Controller, ReadLine.IInformation
     /// </summary>
     public const string SEND_UDP_MESSAGE_EVENT = "Send udp message.";
 
+    public const string ROOMS_WORK_EVENT = "Rooms work";
+
+    public const string ROOM_UPDATE_1 = "RoomUpdate1";
+
     void Construction()
     {
         SystemInformation("Starting program ...");
 
         listen_events(WORK_WITCH_OBJECTS_EVENT, WORK_WITCH_OBJECTS_EVENT);
         listen_events(LISTEN_CLIENTS_EVENT, LISTEN_CLIENTS_EVENT);
-        listen_events(UDP_WORK_EVENT, UDP_WORK_EVENT);
+        listen_events(UDP_WORK_LISTEN_EVENT, UDP_WORK_LISTEN_EVENT);
         listen_events(SEND_SSL_MESSAGE_EVENT, SEND_SSL_MESSAGE_EVENT);
         listen_events(SEND_UDP_MESSAGE_EVENT, SEND_UDP_MESSAGE_EVENT);
     }
@@ -131,6 +136,7 @@ public sealed class Header : Controller, ReadLine.IInformation
                 });
 
                 break;
+            
 
             case h.DESTROY:
 

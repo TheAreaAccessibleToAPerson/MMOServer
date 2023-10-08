@@ -179,22 +179,22 @@ namespace Test
         private void TCPMessageProcess(byte[] message)
         {
 #if INFORMATION
-            Console("Message");
+            Console("Message ...");
 #endif
             byte[][] messages = SplitTCPMessage(message);
 #if INFORMATION
-            Console("MessageLength:" + message.Length);
+            Console("MessagesCount:" + messages.Length);
 #endif
 
             for (int i = 0; i < messages.Length; i++)
             {
                 if (messages[i].Length == 0) continue;
 
-                int type = message[SSL.Header.DATA_TYPE_INDEX_1byte] << 8 ^
-                           message[SSL.Header.DATA_TYPE_INDEX_2byte];
+                int type = messages[i][SSL.Header.DATA_TYPE_INDEX_1byte] << 8 ^
+                           messages[i][SSL.Header.DATA_TYPE_INDEX_2byte];
 
 #if INFORMATION
-                SystemInformation($"type message:{type}", ConsoleColor.Green);
+                SystemInformation($"type message:{type}, length {messages[i].Length}", ConsoleColor.Green);
 #endif
 
                 if (type == SSL.Data.ServerToClient.Connection.Step.TYPE)
@@ -202,7 +202,8 @@ namespace Test
 #if INFORMATION
                     SystemInformation("Access, request first udp packet", ConsoleColor.Green);
 #endif
-                    int result = message[SSL.Data.ServerToClient.Connection.Step.RESULT_INDEX];
+                    int result = messages[i][SSL.Data.ServerToClient.Connection.Step.RESULT_INDEX];
+
                     if (result == SSL.Data.ServerToClient.Connection.Step.Result.ACCESS)
                     {
                         i_sendUDP.To(new byte[UDP.Data.ClientToServer.Connection.Step.LENGTH]
@@ -211,15 +212,14 @@ namespace Test
                         UDP.Data.ClientToServer.Connection.Step.LENGTH >> 8,
                         UDP.Data.ClientToServer.Connection.Step.LENGTH,
 
-                        UDP.Data.ClientToServer.Connection.Step.TYPE >> 8,
                         UDP.Data.ClientToServer.Connection.Step.TYPE,
                         /**************************************************/
 
                         /*********************DATA*************************/
                         messages[i][SSL.Data.ServerToClient.Connection.Step.RECEIVE_ID_INDEX_1byte],
-                        messages[i][SSL.Data.ServerToClient.Connection.Step.RECEIVE_ID_INDEX_1byte],
-                        messages[i][SSL.Data.ServerToClient.Connection.Step.RECEIVE_ID_INDEX_1byte],
-                        messages[i][SSL.Data.ServerToClient.Connection.Step.RECEIVE_ID_INDEX_1byte]
+                        messages[i][SSL.Data.ServerToClient.Connection.Step.RECEIVE_ID_INDEX_2byte],
+                        messages[i][SSL.Data.ServerToClient.Connection.Step.RECEIVE_ID_INDEX_3byte],
+                        messages[i][SSL.Data.ServerToClient.Connection.Step.RECEIVE_ID_INDEX_4byte]
                             /**************************************************/
                         });
                     }
@@ -258,7 +258,7 @@ namespace Test
                     if (message.Length == messagesIndex++)
                         Array.Resize(ref messages, messages.Length + 1);
 
-                    messages[^1] = message[index..(length - 1)];
+                    messages[^1] = message[index..(length)];
 
                     index = length;
                 }

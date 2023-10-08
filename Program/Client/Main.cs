@@ -138,7 +138,7 @@ public sealed class Client : ClientService
                 if (message.Length == messagesIndex++)
                     Array.Resize(ref messages, messages.Length + 1);
 
-                messages[^1] = message[index..(length - 1)];
+                messages[^1] = message[index..length];
 
                 index = length;
             }

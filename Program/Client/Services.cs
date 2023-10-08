@@ -9,6 +9,8 @@ using Butterfly;
 public abstract class ClientService : ClientProperty,
     Client.IReceiveUDPPackets, Client.IReceiveFirstUDPPacket
 {
+    //private readonly Dictionary<ulong, Room.
+
     protected bool IsRunning = true;
 
     /// <summary>
@@ -20,7 +22,7 @@ public abstract class ClientService : ClientProperty,
     /// Первый UDP пакет от клинта должен быть помечен данным ID. Под данному ID мы зарегистрируемся
     /// ReceiveUDPMessage и будет ожидать этот пакет.
     /// </summary>
-    protected uint RegisterFirstUDPPacketID = 0;
+    protected uint RegisterFirstUDPPacketID = 155;
 
     private StateType CurrentState = StateType.None;
 
@@ -122,7 +124,7 @@ public abstract class ClientService : ClientProperty,
 
         if ((ulong)RemoteIPAddress.Address == (addressAndPort >> 16))
         {
-            RemoteUDPPort = ((byte)(addressAndPort >> 8) << 8) ^ (byte)addressAndPort;
+            RemoteUDPPort = ushort.MaxValue & (int)addressAndPort;
             RemoteUDPAddressAndPort = addressAndPort;
 
 #if INFORMATION
@@ -170,6 +172,7 @@ public abstract class ClientService : ClientProperty,
 #if INFORMATION
             SystemInformation("run request client first udp packet.", ConsoleColor.Yellow);
 #endif
+            Console("REGISTER ID" + RegisterFirstUDPPacketID);
             byte[] m = new byte[SSL.Data.ServerToClient.Connection.Step.LENGTH]
             {
                 /*********************HEADER***********************/

@@ -1,32 +1,38 @@
+#define EXCEPTION
+#define INFORMATION
+
 using Butterfly;
 
-public abstract class RoomService : Controller.LocalField<RoomSetting>,
-    Room.IReceiveClientMessage
+public abstract class RoomService : RoomProperty
 {
-    private readonly Dictionary<string, Client> _clients
-        = new Dictionary<string, Client>();
+    private readonly Dictionary<uint, Client.IReceiveRoomMessage> _clients
+        = new Dictionary<uint, Client.IReceiveRoomMessage>();
 
-    void Construction()
+
+    /// <summary>
+    /// Регистрируется в RoomsManager.
+    /// </summary>
+    protected IInput<ulong, IInput<string, uint, byte[]>> I_subscribeIsRoomsManager;
+
+
+    protected void Receive(string senderName, uint idClient, byte[] message)
+    {
+    }
+
+    protected void ReceiveMessage(uint idClient, byte[] message)
     {
 
     }
 
-    void Start()
-    {
-
-    }
-
-    void Configurate()
-    {
-
-    }
-
-    void Room.IReceiveClientMessage.Send(string senderName, byte[] message)
-    {
-
-    }
 
     public struct EX
+    {
+    }
+
+    /// <summary>
+    /// Проверяет нужно ли уничтожить комнату.
+    /// </summary>
+    private void UpdateCheckIsDestroy()
     {
 
     }

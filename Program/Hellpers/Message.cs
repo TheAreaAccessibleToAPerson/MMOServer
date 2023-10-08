@@ -29,124 +29,6 @@ MESSAGE DATA 9 byte
 
 using System.ComponentModel.DataAnnotations;
 
-/*
-public struct UDPHeader
-{
-
-    /// <summary>
-    /// Максимально возможная длина сообщения.
-    /// </summary>
-    public const int MAX_LENGTH = 512;
-
-    /// <summary>
-    /// Минимально возможная длина сообщения.
-    /// В этих 11 байтах содержаться данные:
-    /// 1)2байта - длина сообщения.
-    /// 2)4байта - id клиента.
-    /// 3)1байт - минимально возможно количесво капсул.(при создании сообщения к нему
-    /// прикрепляются капсулы ради которых это сообщение и создавалось, далее пока сообщение
-    /// ждет подтверждение, и совершает повторные отправки, к нему прикрепляются новые капсулы.
-    /// У новых капсул отсутсвует HeaderMessage(длина сообщения и id сообщения))
-    /// 4)4 байта - id сообщения.
-    /// </summary>
-    public const int MIN_LENGTH = 11;
-
-    /// <summary>
-    /// Тип сообщения.
-    /// </summary>
-    public const int TYPE_INDEX = 0;
-
-    /// <summary>
-    /// Приходящее сообщение обезательно содержит заголовок сообщения.
-    /// В первый двух байтах указывается длина данного сообщения.
-    /// Данная констранда содержит индекс первого байта.
-    /// </summary>
-    public const int LENGTH_INDEX_1byte = 0;
-
-    /// <summary>
-    /// Приходящее сообщение обезательно содержит заголовок сообщения.
-    /// В первый двух байтах указывается длина данного сообщения.
-    /// Данная констранда содержит индекс второго байта.
-    /// </summary>
-    public const int LENGTH_INDEX_2byte = 1;
-
-    /// <summary>
-    /// Сообщения приходят определенному клинту.
-    /// Какому иммено определяется по id.
-    /// ID клинта может быть от 0 до 4 294 967 295, тоесть 4 байта.
-    /// Данный индекс указывает на первый байт.
-    /// </summary>
-    public const int ID_CLIENT_1byte = 2;
-
-    /// <summary>
-    /// Сообщения приходят определенному клинту.
-    /// Какому иммено определяется по id.
-    /// ID клинта может быть от 0 до 4 294 967 295, тоесть 4 байта.
-    /// Данный индекс указывает на второй байт.
-    /// </summary>
-    public const int ID_CLIENT_2byte = 3;
-
-    /// <summary>
-    /// Сообщения приходят определенному клинту.
-    /// Какому иммено определяется по id.
-    /// ID клинта может быть от 0 до 4 294 967 295, тоесть 4 байта.
-    /// Данный индекс указывает на третий байт.
-    /// </summary>
-    public const int ID_CLIENT_3byte = 4;
-
-    /// <summary>
-    /// Сообщения приходят определенному клинту.
-    /// Какому иммено определяется по id.
-    /// ID клинта может быть от 0 до 4 294 967 295, тоесть 4 байта.
-    /// Данный индекс указывает на четвертый байт.
-    /// </summary>
-    public const int ID_CLIENT_4byte = 5;
-
-    public struct Capsule
-    {
-        /// <summary>
-        /// Капсула может придти одна, но всегда подразумеваеться что это состав капсул.
-        /// Данный индекс указывает на количесво пришедших капсул.
-        /// Максимально возможный размер капсул 255.
-        /// Данный индекс указывает на это значение.
-        /// </summary>
-        public const int COUNT_INDEX = 6;
-
-        /// <summary>
-        /// Для состава капсул определяется уникальный ID.
-        /// В подтверждение нужно высылать данный ID.
-        /// ID сообщение может быть от 0 до 4 294 967 295, тоесть 4 байта.
-        /// Данный индекс указывает на первый байт.
-        /// </summary>
-        public const int ID_MESSAGE_INDEX_1byte = 7;
-
-        /// <summary>
-        /// Для состава капсул определяется уникальный ID.
-        /// В подтверждение нужно высылать данный ID.
-        /// ID сообщение может быть от 0 до 4 294 967 295, тоесть 4 байта.
-        /// Данный индекс указывает на второй байт.
-        /// </summary>
-        public const int ID_MESSAGE_INDEX_2byte = 8;
-
-        /// <summary>
-        /// Для состава капсул определяется уникальный ID.
-        /// В подтверждение нужно высылать данный ID.
-        /// ID сообщение может быть от 0 до 4 294 967 295, тоесть 4 байта.
-        /// Данный индекс указывает на третий байт.
-        /// </summary>
-        public const int ID_MESSAGE_INDEX_3byte = 9;
-
-        /// <summary>
-        /// Для состава капсул определяется уникальный ID.
-        /// В подтверждение нужно высылать данный ID.
-        /// ID сообщение может быть от 0 до 4 294 967 295, тоесть 4 байта.
-        /// Данный индекс указывает на четвертый байт.
-        /// </summary>
-        public const int ID_MESSAGE_INDEX_4byte = 10;
-    }
-}
-*/
-
 
 namespace SSL
 {
@@ -259,9 +141,9 @@ namespace SSL
         }
         public enum Type
         {
-            ServerToClientConnectionStep1,
+            ServerToClientConnectionStep1 = 4,
 
-            ClientToServerConnectionStep1,
+            ClientToServerConnectionStep1 = 8,
         }
 
     }
@@ -274,7 +156,7 @@ namespace UDP
         /// <summary>
         /// Длина заголовка.
         /// </summary>
-        public const int LENGTH = 4;
+        public const int LENGTH = 3;
 
         /// <summary>
         /// Максимальная длина.
@@ -292,11 +174,7 @@ namespace UDP
         /// <summary>
         /// Индекс который указывает на первый байт хранящий тип сообщения.
         /// </summary>
-        public const int DATA_TYPE_INDEX_1byte = 2;
-        /// <summary>
-        /// Индекс который указывает на второй байт хранящий тип сообщения.
-        /// </summary>
-        public const int DATA_TYPE_INDEX_2byte = 3;
+        public const int DATA_TYPE_INDEX = 2;
     }
 
     public struct Data
@@ -350,12 +228,59 @@ namespace UDP
 
         public enum Type
         {
-            ClientToServerConnectionStep1,
+            ClientToServerConnectionStep1 = 4,
 
-            Message,
+            Message = 8,
+
+            /// Прибытие пакета с данными.
+            Arrival = 12,
+
+            // Прибытие подтвержения что отправленый пакет был доставлен.
+            Acknoledgment = 16,
         }
     }
 
+}
+
+/*****HEADER****/
+// totalLength 2
+// type 1
+
+// Капсулы.
+// length message 1
+// id message 
+// data time 9                   
+// position 8
+// direction 1
+// DATA
+// type 1 Move
+public struct Capsule
+{
+    public struct Header
+    {
+        public const int LENGTH = 18;
+
+        public const int MESSAGE_ID_INDEX_1byte = 0;
+        public const int MESSAGE_ID_INDEX_2byte = MESSAGE_ID_INDEX_1byte + 1;
+        public const int MESSAGE_ID_INDEX_3byte = MESSAGE_ID_INDEX_2byte + 1;
+        public const int MESSAGE_ID_INDEX_4byte = MESSAGE_ID_INDEX_3byte + 1;
+
+        public const int DATA_AGE_INDEX = MESSAGE_ID_INDEX_4byte + 1;
+        public const int DATA_MOUNTH_INDEX = DATA_AGE_INDEX + 1;
+        public const int DATA_DAY_INDEX = DATA_MOUNTH_INDEX + 1;
+        public const int TIME_HOUR_INDEX = DATA_DAY_INDEX + 1;
+        public const int TIME_MIN_INDEX = TIME_HOUR_INDEX + 1;
+        public const int TIME_SEC_INDEX = TIME_MIN_INDEX + 1;
+        public const int TIME_MILL_INDEX_1byte = TIME_SEC_INDEX + 1;
+        public const int TIME_MILL_INDEX_2byte = TIME_MILL_INDEX_1byte + 1;
+
+        public const int POSITION_INDEX_1byte = TIME_MILL_INDEX_2byte + 1;
+        public const int POSITION_INDEX_2byte = POSITION_INDEX_1byte + 1;
+        public const int POSITION_INDEX_3byte = POSITION_INDEX_2byte + 1;
+        public const int POSITION_INDEX_4byte = POSITION_INDEX_3byte + 1;
+
+        public const int DIRECTIONG_INDEX = POSITION_INDEX_4byte + 1;
+    }
 }
 
 public static class Message
