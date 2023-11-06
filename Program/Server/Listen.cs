@@ -28,8 +28,8 @@ public sealed class ClientsListen : Controller.Board.LocalField<string[]>
 
     void Construction()
     {
-        send_message(ref i_addOrRemoveInServer, Server.BUS.LM_ADD_OR_REMOVE_LISTEN_CLIENTS);
-        send_message(ref i_restart, Server.BUS.LM_RESTART_CLIENTS_LISTEN);
+        //send_message(ref i_addOrRemoveInServer, Server.BUS.LM_ADD_OR_REMOVE_LISTEN_CLIENTS);
+        //send_message(ref i_restart, Server.BUS.LM_RESTART_CLIENTS_LISTEN);
         send_message(ref i_addNewClient, ClientsManager.BUS.LM_CREATING_CLIENT);
 
         add_thread($"ListenClients:{GetKey()}", () =>

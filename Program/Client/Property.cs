@@ -92,10 +92,12 @@ public abstract class ClientProperty : Controller.Board.LocalField<TcpClient>
 
             // Тип капсулы.
 
+            /*
             uint idCapsule = capsules[i][Capsule.Header.MESSAGE_ID_INDEX_1byte];
             idCapsule = (idCapsule << 24) ^ capsules[i][Capsule.Header.MESSAGE_ID_INDEX_2byte];
             idCapsule = (idCapsule << 16) ^ capsules[i][Capsule.Header.MESSAGE_ID_INDEX_3byte];
             idCapsule = (idCapsule << 8) ^ capsules[i][Capsule.Header.MESSAGE_ID_INDEX_4byte];
+            */
         }
     }
 }

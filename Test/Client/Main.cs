@@ -20,8 +20,6 @@ namespace Test
         private readonly Socket _UDPSocket =
             new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
 
-        private int _UDPPort;
-
         void Construction()
         {
             input_to(ref i_sendTCP, Header.SEND_SSL_MESSAGE_EVENT, SendTCP);
@@ -85,15 +83,14 @@ namespace Test
         {
             ReadLine.Start(this);
 
-            //i_sendTCP.To(new byte[SSL.Data.ClientToServer.Connection.Step1.LENGTH]
-            i_sendTCP.To(new byte[SSL.Data.ClientToServer.Connection.Step.LENGTH]
+            i_sendTCP.To(new byte[ssl.Data.ClientToServer.Connection.Step.LENGTH]
             {
                 /*********************HEADER***********************/
-                SSL.Data.ClientToServer.Connection.Step.LENGTH >> 8,
-                SSL.Data.ClientToServer.Connection.Step.LENGTH,
+                ssl.Data.ClientToServer.Connection.Step.LENGTH >> 8,
+                ssl.Data.ClientToServer.Connection.Step.LENGTH,
 
-                SSL.Data.ClientToServer.Connection.Step.TYPE >> 8,
-                SSL.Data.ClientToServer.Connection.Step.TYPE,
+                ssl.Data.ClientToServer.Connection.Step.TYPE >> 8,
+                ssl.Data.ClientToServer.Connection.Step.TYPE,
                 /**************************************************/
                 /*********************DATA*************************/
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -152,7 +149,6 @@ namespace Test
             {
                 case Commands.SEND_TCP_MESSAGE:
 
-
                     break;
 
                 default:
@@ -190,36 +186,36 @@ namespace Test
             {
                 if (messages[i].Length == 0) continue;
 
-                int type = messages[i][SSL.Header.DATA_TYPE_INDEX_1byte] << 8 ^
-                           messages[i][SSL.Header.DATA_TYPE_INDEX_2byte];
+                int type = messages[i][ssl.Header.DATA_TYPE_INDEX_1byte] << 8 ^
+                           messages[i][ssl.Header.DATA_TYPE_INDEX_2byte];
 
 #if INFORMATION
                 SystemInformation($"type message:{type}, length {messages[i].Length}", ConsoleColor.Green);
 #endif
 
-                if (type == SSL.Data.ServerToClient.Connection.Step.TYPE)
+                if (type == ssl.Data.ServerToClient.Connection.Step1.TYPE)
                 {
 #if INFORMATION
                     SystemInformation("Access, request first udp packet", ConsoleColor.Green);
 #endif
-                    int result = messages[i][SSL.Data.ServerToClient.Connection.Step.RESULT_INDEX];
+                    int result = messages[i][ssl.Data.ServerToClient.Connection.Step1.RESULT_INDEX];
 
-                    if (result == SSL.Data.ServerToClient.Connection.Step.Result.ACCESS)
+                    if (result == ssl.Data.ServerToClient.Connection.Step1.Result.SUCCESS)
                     {
-                        i_sendUDP.To(new byte[UDP.Data.ClientToServer.Connection.Step.LENGTH]
+                        i_sendUDP.To(new byte[udp.Data.ClientToServer.Connection.Step.LENGTH]
                         {
                         /*********************HEADER***********************/
-                        UDP.Data.ClientToServer.Connection.Step.LENGTH >> 8,
-                        UDP.Data.ClientToServer.Connection.Step.LENGTH,
+                        udp.Data.ClientToServer.Connection.Step.LENGTH >> 8,
+                        udp.Data.ClientToServer.Connection.Step.LENGTH,
 
-                        UDP.Data.ClientToServer.Connection.Step.TYPE,
+                        udp.Data.ClientToServer.Connection.Step.TYPE,
                         /**************************************************/
 
                         /*********************DATA*************************/
-                        messages[i][SSL.Data.ServerToClient.Connection.Step.RECEIVE_ID_INDEX_1byte],
-                        messages[i][SSL.Data.ServerToClient.Connection.Step.RECEIVE_ID_INDEX_2byte],
-                        messages[i][SSL.Data.ServerToClient.Connection.Step.RECEIVE_ID_INDEX_3byte],
-                        messages[i][SSL.Data.ServerToClient.Connection.Step.RECEIVE_ID_INDEX_4byte]
+                        messages[i][ssl.Data.ServerToClient.Connection.Step1.RECEIVE_ID_INDEX_1byte],
+                        messages[i][ssl.Data.ServerToClient.Connection.Step1.RECEIVE_ID_INDEX_2byte],
+                        messages[i][ssl.Data.ServerToClient.Connection.Step1.RECEIVE_ID_INDEX_3byte],
+                        messages[i][ssl.Data.ServerToClient.Connection.Step1.RECEIVE_ID_INDEX_4byte]
                             /**************************************************/
                         });
                     }
@@ -291,13 +287,13 @@ namespace Test
         /// <returns></returns>
         private int GetTCPMessageLength(byte[] message, int startIndex)
         {
-            if ((message.Length - startIndex) >= SSL.Header.LENGTH)
+            if ((message.Length - startIndex) >= ssl.Header.LENGTH)
             {
-                return message[startIndex + SSL.Header.DATA_LENGTH_INDEX_2byte] ^
-                    message[startIndex + SSL.Header.DATA_LENGTH_INDEX_1byte] << 8;
+                return message[startIndex + ssl.Header.DATA_LENGTH_INDEX_2byte] ^
+                    message[startIndex + ssl.Header.DATA_LENGTH_INDEX_1byte] << 8;
             }
 #if EXCEPTION
-            else throw Exception(Ex.x001, SSL.Header.LENGTH, message.Length,
+            else throw Exception(Ex.x001, ssl.Header.LENGTH, message.Length,
                     String.Join(" ", message), ConsoleColor.Red);
 #endif
             return 0;

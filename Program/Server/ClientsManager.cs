@@ -8,7 +8,7 @@ public sealed class ClientsManager : Controller
     {
         obj<World>("World");
         obj<ReceiveUDPPacketForClients>("ReceiveUDPPacketForClients", new string[]
-            {"127.0.0.1", "15300"});
+            {"127.0.0.1", "15301"});
 
         /*
             Получаем нового подключившегося клиeнта и создаем для него обьект.

@@ -124,7 +124,7 @@ public sealed class ReceiveUDPPacketForClients : Controller.LocalField<string[]>
             {
                 for (int index = 0; index < length; index++)
                 {
-                    if (type[index] == UDP.Data.ClientToServer.Message.TYPE)
+                    if (type[index] == udp.Data.ClientToServer.Message.TYPE)
                     {
                         if (_clientsReceiveUDPPackets.TryGetValue(keysClient[index],
                             out Client.IReceiveUDPPackets client))
@@ -136,14 +136,14 @@ public sealed class ReceiveUDPPacketForClients : Controller.LocalField<string[]>
                             ushort.MaxValue & (int)keysClient[index]);
 #endif
                     }
-                    else if (type[index] == UDP.Data.ClientToServer.Connection.Step.TYPE)
+                    else if (type[index] == udp.Data.ClientToServer.Connection.Step.TYPE)
                     {
-                        if (buffers[index].Length == UDP.Data.ClientToServer.Connection.Step.LENGTH)
+                        if (buffers[index].Length == udp.Data.ClientToServer.Connection.Step.LENGTH)
                         {
-                            uint idClient = buffers[index][UDP.Data.ClientToServer.Connection.Step.RECEIVE_ID_1byte];
-                            idClient = (idClient << 24) ^ buffers[index][UDP.Data.ClientToServer.Connection.Step.RECEIVE_ID_2byte];
-                            idClient = (idClient << 16) ^ buffers[index][UDP.Data.ClientToServer.Connection.Step.RECEIVE_ID_3byte];
-                            idClient = (idClient << 8) ^ buffers[index][UDP.Data.ClientToServer.Connection.Step.RECEIVE_ID_4byte];
+                            uint idClient = buffers[index][udp.Data.ClientToServer.Connection.Step.RECEIVE_ID_1byte];
+                            idClient = (idClient << 24) ^ buffers[index][udp.Data.ClientToServer.Connection.Step.RECEIVE_ID_2byte];
+                            idClient = (idClient << 16) ^ buffers[index][udp.Data.ClientToServer.Connection.Step.RECEIVE_ID_3byte];
+                            idClient = (idClient << 8) ^ buffers[index][udp.Data.ClientToServer.Connection.Step.RECEIVE_ID_4byte];
 
                             if (_clientsReceiveFirstUDPPackets.TryGetValue(idClient,
                                 out Client.IReceiveFirstUDPPacket client))
@@ -155,7 +155,7 @@ public sealed class ReceiveUDPPacketForClients : Controller.LocalField<string[]>
 #endif
                         }
 #if EXCEPTION
-                        else throw Exception(Ex.x11, UDP.Data.ClientToServer.Connection.Step.LENGTH,
+                        else throw Exception(Ex.x11, udp.Data.ClientToServer.Connection.Step.LENGTH,
                             buffers[index].Length);
 #endif
                     }
@@ -357,13 +357,13 @@ public sealed class ReceiveUDPPacket : Controller.Board.LocalField<string[]>
 
                             // Проверяем пришедшее сообщение на соответвие минимально
                             // допустимому размеру сообщения.
-                            if (message[index].Length >= UDP.Header.LENGTH)
+                            if (message[index].Length >= udp.Header.LENGTH)
                             {
                                 // Проверяем пришедшее сообщение на соответвие максимально
                                 // допустимому размеру сообщения.
-                                if (message[index].Length <= UDP.Header.MAX_LENGTH)
+                                if (message[index].Length <= udp.Header.MAX_LENGTH)
                                 {
-                                    int type = message[index][UDP.Header.DATA_TYPE_INDEX];
+                                    int type = message[index][udp.Header.DATA_TYPE_INDEX];
 
                                     types[index] = type;
 
@@ -376,7 +376,7 @@ public sealed class ReceiveUDPPacket : Controller.Board.LocalField<string[]>
 #endif
 
 #if INFORMATION
-                                    if (type == UDP.Data.ClientToServer.Message.TYPE)
+                                    if (type == udp.Data.ClientToServer.Message.TYPE)
                                     {
                                         SystemInformation("Пришел пакет с полезными данными.", ConsoleColor.Green);
                                     }
@@ -388,7 +388,7 @@ public sealed class ReceiveUDPPacket : Controller.Board.LocalField<string[]>
                                      который уже ожидает его.
                                     */
 #if INFORMATION
-                                    else if (type == UDP.Data.ClientToServer.Connection.Step.TYPE)
+                                    else if (type == udp.Data.ClientToServer.Connection.Step.TYPE)
                                     {
                                         SystemInformation("Пришел первый UDP пакет.", ConsoleColor.Green);
                                     }
@@ -403,14 +403,14 @@ public sealed class ReceiveUDPPacket : Controller.Board.LocalField<string[]>
 #if EXCEPTION
                                 else
                                 {
-                                    throw Exception(Ex.x02, UDP.Header.MAX_LENGTH, message[index].Length);
+                                    throw Exception(Ex.x02, udp.Header.MAX_LENGTH, message[index].Length);
                                 }
 #endif
                             }
 #if EXCEPTION
                             else
                             {
-                                throw Exception(Ex.x01, UDP.Header.LENGTH, message[index].Length);
+                                throw Exception(Ex.x01, udp.Header.LENGTH, message[index].Length);
                             }
 #endif
                         }

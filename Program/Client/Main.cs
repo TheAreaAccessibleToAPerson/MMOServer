@@ -11,7 +11,7 @@ public sealed class Client : ClientService
         input_to(ref I_TCPMessageProcessing, Header.SEND_SSL_MESSAGE_EVENT, SSLMessageProcess);
         input_to(ref I_UDPMessageProcessing, Header.SEND_UDP_MESSAGE_EVENT, UDPMessageProcess);
 
-        send_echo_2_0(ref I_subscribeToReceiveFirstUDPPacket, 
+        send_echo_2_0(ref I_subscribeToReceiveFirstUDPPacket,
             ReceiveUDPPacketForClients.BUS.LE_SUBSCRIBE_CLIENT_RECEIVE_FIRST_UDP_PACKET)
                 .output_to(SettingConnection, Header.WORK_WITCH_OBJECTS_EVENT);
 
@@ -33,8 +33,6 @@ public sealed class Client : ClientService
         /***************************************************/
 
         SystemInformation($"ID:{GetID()} creating.", ConsoleColor.Green);
-
-        SettingConnection();
     }
 
     void Configurate()
@@ -44,6 +42,8 @@ public sealed class Client : ClientService
             TCPSocket = Field.GetStream().Socket;
 
             RemoteIPAddress = ((System.Net.IPEndPoint)TCPSocket.RemoteEndPoint).Address;
+
+            SettingConnection();
         }
         catch { destroy(); }
     }
@@ -71,7 +71,7 @@ public sealed class Client : ClientService
             try
             {
 #if INFORMATION
-                Console(Message.Show("SendTCP", message, 40));
+                Console("SEND_TCP:" + String.Join(" ", message));
 #endif
 
                 TCPSocket.Send(message);
@@ -95,20 +95,44 @@ public sealed class Client : ClientService
 
         for (int i = 0; i < messages.Length; i++)
         {
-            if (messages[i].Length == 0) continue;
+#if INFORMATION
+            SystemInformation("Message length:" + messages[i].Length);
+#endif
 
-            //if (message[TCPHeader.TYPE_INDEX] ==
-            //ServiceTCPMessage.ClientToServer.TRANSFER_PORT)
+            // В массиве как мимум находится заголовок SSL сообщения.
+            // Сразу после заголовка идет Type сообщения.
+            // Проверим есть ли он там.
+            if (messages[i].Length < ssl.Header.LENGTH + 1) continue;
+
+            int sslMessageType = messages[i][ssl.Header.DATA_TYPE_INDEX_1byte] >> 8 ^
+                messages[i][ssl.Header.DATA_TYPE_INDEX_2byte];
+
+#if INFORMATION
+            SystemInformation($"Message type number:{sslMessageType}");
+#endif
+
+            // Логин и пароль.
+            if (sslMessageType == ssl.Data.ClientToServer.Connection.Step.TYPE)
             {
 #if INFORMATION
-                SystemInformation("TCPMessageProcess - TransferPort", ConsoleColor.Green);
+            SystemInformation("Message connection(in login and password");
+#endif
+                // Проверяем длину.
+                if (messages[i].Length == ssl.Data.ClientToServer.Connection.Step.LENGTH)
+                {
+                    string login = "";
+                    for (int m = ssl.Data.ClientToServer.Connection.Step.LOGIN_START_INDEX;
+                        m < ssl.Data.ClientToServer.Connection.Step.LOGIN_LENGTH; m++)
+                        login += Convert.ToChar(messages[i][m]).ToString();
 
-                //SubscribeToReceiveUDPPacket(messages[i]);
-#endif
+                    string password = "";
+                    for (int m = ssl.Data.ClientToServer.Connection.Step.PASSWORD_START_INDEX;
+                        m < ssl.Data.ClientToServer.Connection.Step.PASSWORD_LENGTH; m++)
+                        password += Convert.ToChar(messages[i][m]).ToString();
+
+                    Verification(login, password);
+                }
             }
-#if EXCEPTION
-            //else throw new Exception(messages[TCPHeader.TYPE_INDEX].ToString());
-#endif
         }
     }
 
@@ -153,7 +177,7 @@ public sealed class Client : ClientService
         while ((messageLength -= index) > 0);
 
 #if EXCEPTION
-        if (messageLength < 0) 
+        if (messageLength < 0)
             throw Exception(Ex.x002, message.Length, index, messageLength, ConsoleColor.Red);
 #endif
 
@@ -167,10 +191,10 @@ public sealed class Client : ClientService
     /// <returns></returns>
     private int GetTCPMessageLength(byte[] message, int startIndex)
     {
-        if ((message.Length - startIndex) >= SSL.Header.LENGTH)
+        if ((message.Length - startIndex) >= ssl.Header.LENGTH)
         {
-            int i = message[startIndex + SSL.Header.DATA_LENGTH_INDEX_1byte] << 8 ^
-                (message[startIndex + SSL.Header.DATA_LENGTH_INDEX_2byte]);
+            int i = message[startIndex + ssl.Header.DATA_LENGTH_INDEX_1byte] << 8 ^
+                (message[startIndex + ssl.Header.DATA_LENGTH_INDEX_2byte]);
 
 #if INFORMATION
             SystemInformation("GetTCPMessageLength:" + i);
@@ -179,7 +203,7 @@ public sealed class Client : ClientService
             return i;
         }
 #if EXCEPTION 
-        else throw Exception(Ex.x001, SSL.Header.LENGTH, message.Length, String.Join(" ", message));
+        else throw Exception(Ex.x001, ssl.Header.LENGTH, message.Length, String.Join(" ", message));
 #endif
         return 0;
     }

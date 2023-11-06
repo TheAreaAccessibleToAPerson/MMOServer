@@ -5,6 +5,8 @@ public sealed class RoomSetting
     /// </summary>
     /// <value></value>
     public string ROOM_UPDATE_EVENT_NAME { get; init;}
+
+    public string EventProcess;
 }
 
 public sealed class RoomSettingJSON

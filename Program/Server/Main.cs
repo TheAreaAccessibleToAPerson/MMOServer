@@ -1,6 +1,6 @@
 using Butterfly;
 
-public sealed class Server : Controller.Board.LocalField<string[]>, ReadLine.IInformation
+public sealed class Server1 : Controller.Board.LocalField<string[]>, ReadLine.IInformation
 {
     private readonly List<string> _clientsListens = new List<string>();
 

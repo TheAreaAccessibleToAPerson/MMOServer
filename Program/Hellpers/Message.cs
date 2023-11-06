@@ -27,10 +27,8 @@ MESSAGE DATA 9 byte
 
 */
 
-using System.ComponentModel.DataAnnotations;
 
-
-namespace SSL
+namespace ssl
 {
     /// <summary>
     /// Заголовок 4 байта
@@ -69,12 +67,14 @@ namespace SSL
             public struct Connection
             {
                 /// <summary>
+                /// Если логин и пороль успешно прошли проверку, то клиент 
+                /// создаст новое TCP соединение.
                 /// 1)1 байт - результат.
                 /// 2)4 байта - если результат удвалитварительный, то эти данные 
                 ///     будут хранить ID под которму сервер прослушивает первый UDP пакет.
                 ///     иначе эти поля будут пустые.
                 /// </summary>
-                public struct Step
+                public struct Step1
                 {
                     public const int TYPE = (int)Data.Type.ServerToClientConnectionStep1;
                     public const int LENGTH = Header.LENGTH + 5;
@@ -86,17 +86,24 @@ namespace SSL
                     public const int RECEIVE_ID_INDEX_3byte = RECEIVE_ID_INDEX_2byte + 1;
                     public const int RECEIVE_ID_INDEX_4byte = RECEIVE_ID_INDEX_3byte + 1;
 
-
                     /// <summary>
                     /// Результат авторизации.
                     /// </summary>
                     public struct Result
                     {
-                        public const int ACCESS = 1;
+                        public const int SUCCESS = 1;
                         public const int LOGIN_ERROR = 2;
                         public const int PASSWORD_ERROR = 3;
-
                     }
+                }
+
+                /// <summary>
+                /// Заправшивается первый UDP пакет.
+                /// </summary>
+                public struct Step2 
+                {
+                    public const int LENGTH = Header.LENGTH;
+                    public const int TYPE = (int)Data.Type.ServerToClientConnectionStep2;
                 }
             }
 
@@ -120,8 +127,9 @@ namespace SSL
                 /// </summary>
                 public struct Step
                 {
-                    public const int TYPE = (int)Data.Type.ClientToServerConnectionStep1;
                     public const int LENGTH = Header.LENGTH + LOGIN_LENGTH + PASSWORD_LENGTH;
+
+                    public const int TYPE = (int)Data.Type.ClientToServerConnectionStep1;
 
                     public const int LOGIN_START_INDEX = Header.LENGTH;
                     public const int LOGIN_LENGTH = 16;
@@ -142,14 +150,23 @@ namespace SSL
         public enum Type
         {
             ServerToClientConnectionStep1 = 4,
+            ServerToClientConnectionStep2 = 8,
 
-            ClientToServerConnectionStep1 = 8,
+            /// <summary>
+            /// Принимает логин и пароль от клинта.
+            /// </summary>
+            ClientToServerConnectionStep1 = 16,
+
+            /// <summary>
+            /// Проверяем на стороне сервера подключeн ли клиент.
+            /// </summary>
+            CheckConnectionServerToClient = 32,
         }
 
     }
 }
 
-namespace UDP
+namespace udp
 {
     public struct Header
     {
@@ -218,7 +235,7 @@ namespace UDP
 
             public struct Message
             {
-               public const int TYPE = (int)Type.Message;
+                public const int TYPE = (int)Type.Message;
             }
 
             public struct Disconnection
@@ -258,28 +275,112 @@ public struct Capsule
 {
     public struct Header
     {
-        public const int LENGTH = 18;
+        public const int LENGTH = 6;
+        public const int LENGTH_INDEX = 0;
 
-        public const int MESSAGE_ID_INDEX_1byte = 0;
-        public const int MESSAGE_ID_INDEX_2byte = MESSAGE_ID_INDEX_1byte + 1;
-        public const int MESSAGE_ID_INDEX_3byte = MESSAGE_ID_INDEX_2byte + 1;
-        public const int MESSAGE_ID_INDEX_4byte = MESSAGE_ID_INDEX_3byte + 1;
+        /// <summary>
+        /// Тип капсулы:
+        /// ACK - 0 - подтверждение получения сообщения.(получатель -> отправитель)
+        /// FIN - 1 - получение подтверждения получения сообщения(отправитель -> получатель)
+        /// PUSH - >2 - игровое сообщение: передвежение.
+        /// </summary>
+        public const int TYPE_INDEX = LENGTH_INDEX + 1;
 
-        public const int DATA_AGE_INDEX = MESSAGE_ID_INDEX_4byte + 1;
-        public const int DATA_MOUNTH_INDEX = DATA_AGE_INDEX + 1;
-        public const int DATA_DAY_INDEX = DATA_MOUNTH_INDEX + 1;
-        public const int TIME_HOUR_INDEX = DATA_DAY_INDEX + 1;
-        public const int TIME_MIN_INDEX = TIME_HOUR_INDEX + 1;
-        public const int TIME_SEC_INDEX = TIME_MIN_INDEX + 1;
-        public const int TIME_MILL_INDEX_1byte = TIME_SEC_INDEX + 1;
-        public const int TIME_MILL_INDEX_2byte = TIME_MILL_INDEX_1byte + 1;
+        public const int ID_INDEX_1byte = TYPE_INDEX + 1;
+        public const int ID_INDEX_2byte = ID_INDEX_1byte + 1;
+        public const int ID_INDEX_3byte = ID_INDEX_2byte + 1;
+        public const int ID_INDEX_4byte = ID_INDEX_3byte + 1;
 
-        public const int POSITION_INDEX_1byte = TIME_MILL_INDEX_2byte + 1;
-        public const int POSITION_INDEX_2byte = POSITION_INDEX_1byte + 1;
-        public const int POSITION_INDEX_3byte = POSITION_INDEX_2byte + 1;
-        public const int POSITION_INDEX_4byte = POSITION_INDEX_3byte + 1;
+        /// <summary>
+        /// Подтверждение получения PSH сообщения.
+        /// </summary>
+        public struct ACK
+        {
+            public const string NAME = "ACK";
 
-        public const int DIRECTIONG_INDEX = POSITION_INDEX_4byte + 1;
+            public const int TYPE = 0;
+
+            public const int LENGTH = Header.LENGTH + 0;
+
+            /// <summary>
+            /// ID отправленого push сообщения.
+            /// </summary>
+            public const int ACKNOLEDGMENT_MESSAGE_ID_1byte = TYPE_INDEX + 1;
+            /// <summary>
+            /// ID отправленого push сообщения.
+            /// </summary>
+            public const int ACKNOLEDGMENT_MESSAGE_ID_2byte = ACKNOLEDGMENT_MESSAGE_ID_1byte + 1;
+            /// <summary>
+            /// ID отправленого push сообщения.
+            /// </summary>
+            public const int ACKNOLEDGMENT_MESSAGE_ID_3byte = ACKNOLEDGMENT_MESSAGE_ID_2byte + 1;
+            /// <summary>
+            /// ID отправленого push сообщения.
+            /// </summary>
+            public const int ACKNOLEDGMENT_MESSAGE_ID_4byte = ACKNOLEDGMENT_MESSAGE_ID_3byte + 1;
+        }
+
+        public struct FIN
+        {
+            public const string NAME = "FIN";
+
+            public const int TYPE = 1;
+
+            public const int LENGTH = Header.LENGTH + 0;
+
+            /// <summary>
+            /// ID отправленого ack сообщения.
+            /// </summary>
+            public const int FIN_ACKNOLEDGMENT_ID_1byte = TYPE_INDEX + 1;
+            /// <summary>
+            /// ID отправленого ack сообщения.
+            /// </summary>
+            public const int FIN_ACKNOLEDGMENT_ID_2byte = FIN_ACKNOLEDGMENT_ID_1byte;
+            /// <summary>
+            /// ID отправленого ack сообщения.
+            /// </summary>
+            public const int FIN_ACKNOLEDGMENT_ID_3byte = FIN_ACKNOLEDGMENT_ID_2byte;
+            /// <summary>
+            /// ID отправленого ack сообщения.
+            /// </summary>
+            public const int FIN_ACKNOLEDGMENT_ID_4byte = FIN_ACKNOLEDGMENT_ID_3byte;
+        }
+
+        public struct PSH
+        {
+            public const string NAME = "PSH";
+
+            /// <summary>
+            /// Даный тип указывает что данная капсула сообщает об передвижении.
+            /// </summary>
+            public const int MOVE_TYPE = 1;
+
+            public const int LENGTH = Header.LENGTH + 19;
+
+            public const int DATA_AGE_INDEX = ID_INDEX_4byte + 1;
+            public const int DATA_MOUNTH_INDEX = DATA_AGE_INDEX + 1;
+            public const int DATA_DAY_INDEX = DATA_MOUNTH_INDEX + 1;
+            public const int TIME_HOUR_INDEX = DATA_DAY_INDEX + 1;
+            public const int TIME_MIN_INDEX = TIME_HOUR_INDEX + 1;
+            public const int TIME_SEC_INDEX = TIME_MIN_INDEX + 1;
+            public const int TIME_MILL_INDEX_1byte = TIME_SEC_INDEX + 1;
+            public const int TIME_MILL_INDEX_2byte = TIME_MILL_INDEX_1byte + 1;
+
+            public const int POSITION_X_INDEX_1byte = TIME_MILL_INDEX_2byte + 1;
+            public const int POSITION_X_INDEX_2byte = POSITION_X_INDEX_1byte + 1;
+            public const int POSITION_X_INDEX_3byte = POSITION_X_INDEX_2byte + 1;
+            public const int POSITION_X_INDEX_4byte = POSITION_X_INDEX_3byte + 1;
+
+            public const int POSITION_Y_INDEX_1byte = POSITION_X_INDEX_4byte + 1;
+            public const int POSITION_Y_INDEX_2byte = POSITION_Y_INDEX_1byte + 1;
+            public const int POSITION_Y_INDEX_3byte = POSITION_Y_INDEX_2byte + 1;
+            public const int POSITION_Y_INDEX_4byte = POSITION_Y_INDEX_3byte + 1;
+
+            /// <summary>
+            /// 0 - LEFT, 1 - RIGHT
+            /// </summary>
+            public const int DIRECTIONG_INDEX = POSITION_Y_INDEX_4byte + 1;
+        }
     }
 }
 

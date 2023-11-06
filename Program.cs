@@ -1,8 +1,7 @@
-﻿using System.Security.Cryptography;
+﻿using System.ComponentModel;
+using System.Security.Cryptography;
 using System.Text.Json;
-
-// 9 байт : 7 - год от 00 - 99, 
-// Time : 5 - дата, 4 - месяц, часы - 5, 6 - минуты, 6 - секунды. 10 - милисекунды.
+using Butterfly.system.objects.main;
 
 /*****HEADER****/
 // totalLength 2
@@ -22,22 +21,27 @@ namespace Butterfly
     {
         public static void Main(string[] args)
         {
-            Butterfly.fly<Header>(new Butterfly.Settings()
+            Butterfly.fly<Header1>(new Butterfly.Settings()
             {
                 Name = "Program",
 
-                SystemEvent = new EventSetting(Header.WORK_WITCH_OBJECTS_EVENT, 50),
+                SystemEvent = new EventSetting(Header1.Event.WORK_OBJECT, 50),
 
                 EventsSetting = new EventSetting[]
                 {
+                    new EventSetting(Header1.Event.WORK_UDP_PACKETS, 200),
+                    new EventSetting(Header1.Event.WORK_SSL, 200),
+                    /*
                     new EventSetting(Header.LISTEN_CLIENTS_EVENT, 200),
                     new EventSetting(Header.UDP_WORK_LISTEN_EVENT, 200),
                     new EventSetting(Header.RECEIVE_SSL_EVENT, 200),
                     new EventSetting(Header.SEND_UDP_MESSAGE_EVENT, 200),
                     new EventSetting(Header.SEND_SSL_MESSAGE_EVENT, 200),
                     new EventSetting(RoomsManager.ROOMS_MANAGER_WORK_EVENT, 200),
+                    new EventSetting(RoomsManager.ROOMS_WORKS_1, 200),
 
                     new EventSetting(Header.ROOM_UPDATE_1, 200, 1024, true, Thread.Priority.Normal),
+                    */
                 }
             });
 
@@ -97,6 +101,35 @@ namespace Butterfly
             DateTime moscowTime = DateTime.UtcNow + moscowTimeZone.BaseUtcOffset;
             int milli = moscowTime.Millisecond;
             Console.WriteLine(moscowTime + " ." + milli);
+            */
+            /*
+            StreamReader str = new StreamReader("/home/dmitry/MMOServer/file.txt");
+
+            List<char[]> bufferList = new List<char[]>();
+            char[] buffer = new char[1024]; int index = 0;
+
+            foreach (char c in str.ReadToEnd())
+            {
+                buffer[index++] = c;
+
+                if (c == '&') break;
+                if (c == '\n') 
+                {
+                    bufferList.Add(buffer[0 .. index]);
+
+                    buffer = new char[1024]; index = 0;
+                }
+            }
+
+            foreach(char[] m in bufferList)
+            {
+                foreach(char c in m)
+                {
+                    Console.Write(c);
+                }
+
+                //Console.WriteLine();
+            }
             */
         }
     }

@@ -76,7 +76,7 @@ public sealed class Header : Controller, ReadLine.IInformation
                     else return;
                 }
 
-                if (try_obj(serverName, out Server serverObject))
+                if (try_obj(serverName, out Server1 serverObject))
                 {
                     ConsoleLine($"Сервер с именем {serverName} уже сущесвует, желаете отключить его? Enter/n");
                     string serverIsDisable = System.Console.ReadLine();
@@ -118,7 +118,7 @@ public sealed class Header : Controller, ReadLine.IInformation
                     else return;
                 }
 
-                obj<Server>(serverName, new string[]
+                obj<Server1>(serverName, new string[]
                 {
                     serverAddress,
                     serverPort

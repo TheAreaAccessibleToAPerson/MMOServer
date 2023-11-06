@@ -9,7 +9,7 @@ using Butterfly;
 public abstract class ClientService : ClientProperty,
     Client.IReceiveUDPPackets, Client.IReceiveFirstUDPPacket
 {
-    //private readonly Dictionary<ulong, Room.
+    //private readonly Dictionary<ulong, Room>
 
     protected bool IsRunning = true;
 
@@ -95,7 +95,6 @@ public abstract class ClientService : ClientProperty,
 #if INFORMATION
                         Console(Message.Show("ReceiveTCPSocket", buffer, 40));
 #endif
-
                         I_TCPMessageProcessing.To(buffer);
                     }
                     else SystemInformation($"SocketError:{error}", ConsoleColor.Red);
@@ -139,6 +138,14 @@ public abstract class ClientService : ClientProperty,
 #endif
     }
 
+    protected void Verification(string login, string password)
+    {
+#if INFORMATION
+        SystemInformation($"Login:{login}, Password{password}.");
+#endif
+        SettingConnection();
+    }
+
     /// <summary>
     /// В данном методе будет произведена настройка соединения с клиентом.
     /// </summary>
@@ -150,8 +157,17 @@ public abstract class ClientService : ClientProperty,
 
         if (IsRunning == false) return;
 
-        // Подписываемся на получение первого UDP пакета.
+        // Ожидаем логин и пароль.
         if (CurrentState.HasFlag(StateType.None))
+        {
+            CurrentState = StateType.WaitLoginAndPassword;
+
+#if INFORMATION
+            SystemInformation("waiting login and password.", ConsoleColor.Yellow);
+#endif
+        }
+        // Подписываемся на получение первого UDP пакета.
+        else if (CurrentState.HasFlag(StateType.WaitLoginAndPassword))
         {
             CurrentState = StateType.SubscribeToReceiveFirstUDPPacket;
 
@@ -173,18 +189,18 @@ public abstract class ClientService : ClientProperty,
             SystemInformation("run request client first udp packet.", ConsoleColor.Yellow);
 #endif
             Console("REGISTER ID" + RegisterFirstUDPPacketID);
-            byte[] m = new byte[SSL.Data.ServerToClient.Connection.Step.LENGTH]
+            byte[] m = new byte[ssl.Data.ServerToClient.Connection.Step1.LENGTH]
             {
                 /*********************HEADER***********************/
-                SSL.Data.ServerToClient.Connection.Step.LENGTH >> 8,
-                SSL.Data.ServerToClient.Connection.Step.LENGTH,
+                ssl.Data.ServerToClient.Connection.Step1.LENGTH >> 8,
+                ssl.Data.ServerToClient.Connection.Step1.LENGTH,
 
-                SSL.Data.ServerToClient.Connection.Step.TYPE >> 8,
-                SSL.Data.ServerToClient.Connection.Step.TYPE,
+                ssl.Data.ServerToClient.Connection.Step1.TYPE >> 8,
+                ssl.Data.ServerToClient.Connection.Step1.TYPE,
                 /**************************************************/
 
                 /*********************DATA*************************/
-                SSL.Data.ServerToClient.Connection.Step.Result.ACCESS,
+                ssl.Data.ServerToClient.Connection.Step1.Result.SUCCESS,
 
                 (byte)(RegisterFirstUDPPacketID << 24),
                 (byte)(RegisterFirstUDPPacketID << 16),
