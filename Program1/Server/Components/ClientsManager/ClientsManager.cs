@@ -22,14 +22,14 @@ namespace server.component
                 .output_to((newClient) =>
                 {
                     string name = $"{((IPEndPoint)newClient.Client.RemoteEndPoint).Address}" + 
-                    $"{ClientsListen._}{((IPEndPoint)newClient.Client.RemoteEndPoint).Port}";
+                    $"/{((IPEndPoint)newClient.Client.RemoteEndPoint).Port}";
 
                     if (try_obj(name, out clientManager.component.ClientShell client))
                         client.destroy();
 
                     obj<clientManager.component.ClientShell>(name, newClient);
                 },
-                Header1.Event.WORK_OBJECT);
+                Header.Event.WORK_OBJECT);
         }
     }
 }

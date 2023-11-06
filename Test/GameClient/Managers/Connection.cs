@@ -8,8 +8,8 @@ namespace gameClient.manager
 
         public Connection()
         {
-            _udpManager = new(Header1.ADDRESS, Header1.UDP_PORT);
-            _tcpManager = new(Header1.ADDRESS, Header1.TCP_PORT);
+            _udpManager = new(Header.ADDRESS, Header.UDP_PORT);
+            _tcpManager = new(Header.ADDRESS, Header.TCP_PORT);
 
             _sslManager = new(this, _tcpManager, _udpManager);
         }

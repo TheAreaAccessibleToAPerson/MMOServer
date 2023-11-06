@@ -13,27 +13,27 @@ namespace server.component.clientManager.component
             send_message(ref i_logger, Logger.BUS.Message.CLIENT_SHELL_COMPONENT);
 #endif
 
-            input_to(ref I_process, Header1.Event.WORK_OBJECT, Process);
-            input_to(ref I_receiveSSL, Header1.Event.WORK_SSL, InputReceive);
-            input_to(ref I_sendSSL, Header1.Event.WORK_SSL, InputSend);
+            input_to(ref I_process, Header.Event.WORK_OBJECT, Process);
+            input_to(ref I_receiveSSL, Header.Event.WORK_SSL, InputReceive);
+            input_to(ref I_sendSSL, Header.Event.WORK_SSL, InputSend);
 
             send_message(ref I_verificationBD, "BD");
 
             send_echo_2_0(ref I_subscribeReceiveToTCPConnection,
                 ListenTCPClientsShell.BUS.Echo.SUBSCRIBE_TO_RECEIVE_CONNECTION)
-                    .output_to(Process, Header1.Event.WORK_OBJECT);
+                    .output_to(Process, Header.Event.WORK_OBJECT);
 
             send_echo_1_0(ref I_unsubscribeReceiveToTCPConnection,
                 ListenTCPClientsShell.BUS.Echo.UNSUBSCRIBE_TO_RECEIVE_CONNECTION)
-                    .output_to(Process, Header1.Event.WORK_OBJECT);
+                    .output_to(Process, Header.Event.WORK_OBJECT);
 
             send_echo_2_0(ref I_subscribeToReceiveFirstUDPPacket,
                 ReceiveUDPShell.BUS.Echo.SUBSCRIBE_TO_RECEIVE_THE_FIRST_PACKET)
-                    .output_to(Process, Header1.Event.WORK_OBJECT);
+                    .output_to(Process, Header.Event.WORK_OBJECT);
 
             send_echo_1_0(ref I_unsubscribeToReceiveFirstUDPPacket,
                 ReceiveUDPShell.BUS.Echo.UNSUBSCRIBE_TO_RECEIVE_THE_FIRST_PACKET)
-                    .output_to(Process, Header1.Event.WORK_OBJECT);
+                    .output_to(Process, Header.Event.WORK_OBJECT);
 
             ClientInformation = new(4, 16, 4, 16, I_process);
         }

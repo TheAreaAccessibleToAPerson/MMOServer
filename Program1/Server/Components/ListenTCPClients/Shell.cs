@@ -101,7 +101,7 @@ namespace server.component
                         @return.To();
                     }
                 },
-                Header1.Event.WORK_OBJECT);
+                Header.Event.WORK_OBJECT);
 
             listen_echo_1_0<string>(BUS.Echo.UNSUBSCRIBE_TO_RECEIVE_CONNECTION)
                 .output_to((key, @return) =>
@@ -121,7 +121,7 @@ namespace server.component
 #endif
                     }
                 },
-                Header1.Event.WORK_OBJECT);
+                Header.Event.WORK_OBJECT);
 
             listen_message<TcpClient>(BUS.Message.ADD_TCP_CONNECT)
                 .output_to((tcpConnect) =>
@@ -144,7 +144,7 @@ namespace server.component
                     }
 #endif
                 },
-                Header1.Event.WORK_OBJECT);
+                Header.Event.WORK_OBJECT);
 
             listen_impuls(BUS.Impuls.START)
                 .output_to((infoObj) =>

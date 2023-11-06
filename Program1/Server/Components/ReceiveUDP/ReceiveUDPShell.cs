@@ -85,7 +85,7 @@ namespace server.component
 
             listen_message<int[], string[], int[], byte[][], int>
                 (BUS.Message.RECEIVE_PACKETS)
-                    .output_to(ReceivePackets, Header1.Event.WORK_UDP_PACKETS);
+                    .output_to(ReceivePackets, Header.Event.WORK_UDP_PACKETS);
 
 /*
             listen_echo_2_0<uint, clientShell.ConnectionController.IReceiveFirstUDPPacket>
@@ -99,11 +99,11 @@ namespace server.component
 
             listen_echo_2_0<string, clientManager.component.clientShell.ConnectionController.IReceiveFirstUDPPacket>
                 (BUS.Echo.SUBSCRIBE_TO_RECEIVE_THE_FIRST_PACKET)
-                    .output_to(SubscribeReceiveFirstUDPPacket, Header1.Event.WORK_UDP_PACKETS);
+                    .output_to(SubscribeReceiveFirstUDPPacket, Header.Event.WORK_UDP_PACKETS);
 
             listen_echo_1_0<string>
                 (BUS.Echo.UNSUBSCRIBE_TO_RECEIVE_THE_FIRST_PACKET)
-                    .output_to(UnsubscribeReceiveFirstUDPPacket, Header1.Event.WORK_UDP_PACKETS);
+                    .output_to(UnsubscribeReceiveFirstUDPPacket, Header.Event.WORK_UDP_PACKETS);
 
             listen_impuls(BUS.Impuls.START)
                 .output_to((infoObj) =>

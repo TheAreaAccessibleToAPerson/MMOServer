@@ -9,6 +9,6 @@ public class Client1 : Controller.Board
         gameClient.Client client = new gameClient.Client();
 
         client.Start("login", "password", 
-            Header1.ADDRESS, Header1.SSL_PORT, Header1.TCP_PORT, Header1.UDP_PORT);
+            Header.ADDRESS, Header.SSL_PORT, Header.TCP_PORT, Header.UDP_PORT);
     }
 }

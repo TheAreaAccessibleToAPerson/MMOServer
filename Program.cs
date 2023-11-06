@@ -1,47 +1,19 @@
-﻿using System.ComponentModel;
-using System.Security.Cryptography;
-using System.Text.Json;
-using Butterfly.system.objects.main;
-
-/*****HEADER****/
-// totalLength 2
-// type 1
-
-// Капсулы.
-// length message 1
-// id message 
-// data time 9                   
-// position 8
-// direction 1
-// DATA
-// type 1 Move
-namespace Butterfly
+﻿namespace Butterfly
 {
     public sealed class Program
     {
         public static void Main(string[] args)
         {
-            Butterfly.fly<Header1>(new Butterfly.Settings()
+            Butterfly.fly<Header>(new Butterfly.Settings()
             {
                 Name = "Program",
 
-                SystemEvent = new EventSetting(Header1.Event.WORK_OBJECT, 50),
+                SystemEvent = new EventSetting(Header.Event.WORK_OBJECT, 50),
 
                 EventsSetting = new EventSetting[]
                 {
-                    new EventSetting(Header1.Event.WORK_UDP_PACKETS, 200),
-                    new EventSetting(Header1.Event.WORK_SSL, 200),
-                    /*
-                    new EventSetting(Header.LISTEN_CLIENTS_EVENT, 200),
-                    new EventSetting(Header.UDP_WORK_LISTEN_EVENT, 200),
-                    new EventSetting(Header.RECEIVE_SSL_EVENT, 200),
-                    new EventSetting(Header.SEND_UDP_MESSAGE_EVENT, 200),
-                    new EventSetting(Header.SEND_SSL_MESSAGE_EVENT, 200),
-                    new EventSetting(RoomsManager.ROOMS_MANAGER_WORK_EVENT, 200),
-                    new EventSetting(RoomsManager.ROOMS_WORKS_1, 200),
-
-                    new EventSetting(Header.ROOM_UPDATE_1, 200, 1024, true, Thread.Priority.Normal),
-                    */
+                    new EventSetting(Header.Event.WORK_UDP_PACKETS, 200),
+                    new EventSetting(Header.Event.WORK_SSL, 200),
                 }
             });
 

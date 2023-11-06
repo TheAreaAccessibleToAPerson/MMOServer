@@ -1,6 +1,6 @@
 using Butterfly;
 
-public class Header1 : Controller, ReadLine.IInformation
+public class Header : Controller, ReadLine.IInformation
 {
     public struct Event
     {
