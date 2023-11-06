@@ -105,6 +105,15 @@ namespace ssl
                     public const int LENGTH = Header.LENGTH;
                     public const int TYPE = (int)Data.Type.ServerToClientConnectionStep2;
                 }
+
+                /// <summary>
+                /// Сообщаем о том что пакет был доставлен.
+                /// </summary>
+                public struct Step3
+                {
+                    public const int LENGTH = Header.LENGTH;
+                    public const int TYPE = (int)Data.Type.ServerToClientConnectionStep3;
+                }
             }
 
             public struct Message
@@ -151,16 +160,17 @@ namespace ssl
         {
             ServerToClientConnectionStep1 = 4,
             ServerToClientConnectionStep2 = 8,
+            ServerToClientConnectionStep3 = 16,
 
             /// <summary>
             /// Принимает логин и пароль от клинта.
             /// </summary>
-            ClientToServerConnectionStep1 = 16,
+            ClientToServerConnectionStep1 = 32,
 
             /// <summary>
             /// Проверяем на стороне сервера подключeн ли клиент.
             /// </summary>
-            CheckConnectionServerToClient = 32,
+            CheckConnectionServerToClient = 64,
         }
 
     }
@@ -202,6 +212,13 @@ namespace udp
             {
                 public struct Step
                 {
+                    public const int TYPE = (int)Data.Type.ServerToClientConnectionStep1;
+                    public const int LENGTH = Header.LENGTH + 4;
+
+                    public const int RECEIVE_ID_1byte = Header.LENGTH;
+                    public const int RECEIVE_ID_2byte = RECEIVE_ID_1byte + 1;
+                    public const int RECEIVE_ID_3byte = RECEIVE_ID_2byte + 1;
+                    public const int RECEIVE_ID_4byte = RECEIVE_ID_3byte + 1;
                 }
             }
 
@@ -246,14 +263,15 @@ namespace udp
         public enum Type
         {
             ClientToServerConnectionStep1 = 4,
+            ServerToClientConnectionStep1 = 8,
 
-            Message = 8,
+            Message = 16,
 
             /// Прибытие пакета с данными.
-            Arrival = 12,
+            Arrival = 32,
 
             // Прибытие подтвержения что отправленый пакет был доставлен.
-            Acknoledgment = 16,
+            Acknoledgment = 64,
         }
     }
 

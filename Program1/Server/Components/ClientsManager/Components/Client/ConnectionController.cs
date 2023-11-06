@@ -5,6 +5,7 @@
 using System.Net;
 using System.Net.Sockets;
 using Butterfly;
+using gameClient.manager;
 
 namespace server.component.clientManager.component.clientShell
 {
@@ -87,11 +88,14 @@ namespace server.component.clientManager.component.clientShell
 
             if (ConnectionState.HasNone())
             {
-                Console("!!!!!!!!!!!!!!!!!!!!!");
                 if (ConnectionState.SetReceiveLoginAndPassword
                     (out string receiveLoginAndPasswordError))
                 {
-                    Task.Run(() => TimeDelay(I_receiveSSL.To, 2000));
+#if CSL
+                    _logger("Сервер ожидает логина и пароля от клинта.");
+#endif
+
+                    Task.Run(() => TimeDelay(I_receiveSSL.To, 1000));
                 }
                 else Destroy(receiveLoginAndPasswordError);
             }
@@ -100,6 +104,9 @@ namespace server.component.clientManager.component.clientShell
                 if (ConnectionState.SetAuthorization
                     (out string setAuthorizationError))
                 {
+#if CSL
+                    _logger("Логин и пароль получен, проводим вирификацию данных.");
+#endif
                     I_verificationBD.To(ClientInformation);
                 }
                 else Destroy(setAuthorizationError);
@@ -111,6 +118,9 @@ namespace server.component.clientManager.component.clientShell
                     if (ConnectionState.SetSubscribeReceiveTCPConnection
                         (out string setRegisterReceiveTCPConnectionError))
                     {
+#if CSL
+                        _logger("Регистрируем ожидание нового TCP соединения.");
+#endif
                         // Регистрируемся и ожидаем новое TCP соединение.
                         I_subscribeReceiveToTCPConnection.To
                             (((IPEndPoint)Field.Client.RemoteEndPoint).Address.ToString(), this);
@@ -124,6 +134,9 @@ namespace server.component.clientManager.component.clientShell
                 if (ConnectionState.SetCreatingTCPConnection
                     (out string setCreatingTCPConnectionError))
                 {
+#if CSL
+                    _logger("Сообщаем клинту что бы тот подключился по TCP.");
+#endif
                     I_sendSSL.To(new byte[ssl.Data.ServerToClient.Connection.Step1.LENGTH]
                     {
                         /*********************HEADER***********************/
@@ -142,14 +155,13 @@ namespace server.component.clientManager.component.clientShell
                         /**************************************************/
                     });
 
-
                     Task.Run(() =>
                     {
                         TimeDelay(() =>
                         {
                             if (ConnectionState.HasCreatingTCPConnection())
-                                destroy();
-                        }, 2000);
+                                Destroy("Превышен временой лимит создания TCP соединения.");
+                        }, 1000);
                     });
                 }
                 else Destroy(setCreatingTCPConnectionError);
@@ -159,6 +171,9 @@ namespace server.component.clientManager.component.clientShell
                 if (ConnectionState.SetUnsubscribeReceiveTCPConnection
                     (out string setUnsubscribeReceiveTCPConnection))
                 {
+#if CSL
+                    _logger("Отписываемся из места ожидания новых TCP поключений.");
+#endif
                     I_unsubscribeReceiveToTCPConnection.To
                         (((IPEndPoint)Field.Client.RemoteEndPoint).Address.ToString());
                 }
@@ -169,6 +184,9 @@ namespace server.component.clientManager.component.clientShell
                 if (ConnectionState.SetSubscribeReceiveFirstUDPPacket
                     (out string setRegistractionReceiveUDPConnectionError))
                 {
+#if CSL
+                    _logger("Подписываемся и ожидаем первый UDP пакет.");
+#endif
                     I_subscribeToReceiveFirstUDPPacket.To
                         (((IPEndPoint)Field.Client.RemoteEndPoint).Address.ToString(), this);
                 }
@@ -179,6 +197,9 @@ namespace server.component.clientManager.component.clientShell
                 if (ConnectionState.SetCreatingUDPConnection
                     (out string setCreatingUDPConnectionError))
                 {
+#if CSL
+                    _logger("Сообщаем клинту что бы тот отправил первый UDP пакет.");
+#endif
                     I_sendSSL.To(new byte[ssl.Data.ServerToClient.Connection.Step2.LENGTH]
                     {
                         /*********************HEADER***********************/
@@ -190,15 +211,14 @@ namespace server.component.clientManager.component.clientShell
                         /**************************************************/
                     });
 
-
                     Task.Run(() =>
                     {
                         TimeDelay(() =>
                         {
                             if (ConnectionState.HasCreatingUDPConnection())
-                                destroy();
+                                Destroy("Превышен временой лимит создания UDP соединения.");
 
-                        }, 10000);
+                        }, 1000);
                     });
                 }
                 else Destroy(setCreatingUDPConnectionError);
@@ -208,10 +228,34 @@ namespace server.component.clientManager.component.clientShell
                 if (ConnectionState.SetUnsubscribeReceiveFirstUDPPacket
                     (out string setUnsubscribeReceiveFirstUDPPacketError))
                 {
+#if CSL
+                    _logger("Отписываемся из места получения первого UDP пакета.");
+#endif
                     I_unsubscribeToReceiveFirstUDPPacket.To
                         (((IPEndPoint)Field.Client.RemoteEndPoint).Address.ToString());
                 }
                 else Destroy(setUnsubscribeReceiveFirstUDPPacketError);
+            }
+            else if (ConnectionState.HasUnsubscribeReceiveFirstUDPPacket())
+            {
+                if (ConnectionState.SetConnect(out string setConnectError))
+                {
+#if CSL
+                    _logger("Connect.");
+#endif
+                    // Проинформируем о что соединение установленно.
+                    I_sendSSL.To(new byte[ssl.Data.ServerToClient.Connection.Step3.LENGTH]
+                    {
+                        /*********************HEADER***********************/
+                        ssl.Data.ServerToClient.Connection.Step3.LENGTH >> 8,
+                        ssl.Data.ServerToClient.Connection.Step3.LENGTH,
+
+                        ssl.Data.ServerToClient.Connection.Step3.TYPE >> 8,
+                        ssl.Data.ServerToClient.Connection.Step3.TYPE,
+                        /**************************************************/
+                    });
+                }
+                else Destroy(setConnectError);
             }
         }
 
@@ -335,11 +379,27 @@ namespace server.component.clientManager.component.clientShell
                 destroy();
             }
         }
-        public void Receive(byte[] message, string address, int port)
+
+        void IReceiveFirstUDPPacket.Receive(byte[] message, string address, int port)
         {
+            if (message.Length >= udp.Header.LENGTH)
+            {
+                if (message[udp.Header.DATA_TYPE_INDEX] == udp.Data.ClientToServer.Connection.Step.TYPE)
+                {
+                    if (message.Length == udp.Data.ClientToServer.Connection.Step.LENGTH)
+                    {
+                        int id = message[udp.Data.ServerToClient.Connection.Step.RECEIVE_ID_1byte] << 24 ^
+                            message[udp.Data.ServerToClient.Connection.Step.RECEIVE_ID_2byte] << 16 ^
+                            message[udp.Data.ServerToClient.Connection.Step.RECEIVE_ID_3byte] << 8 ^
+                            message[udp.Data.ServerToClient.Connection.Step.RECEIVE_ID_4byte];
+
+                        if (id == ConnectionID) Process();
+                    }
+                }
+            }
         }
 
-        public void Receive(TcpClient tcpConnection)
+        void IReceiveTCPConnection.Receive(TcpClient tcpConnection)
         {
 #if INFO
             SystemInformation("Клиент пролучил новое TCP соединение.");

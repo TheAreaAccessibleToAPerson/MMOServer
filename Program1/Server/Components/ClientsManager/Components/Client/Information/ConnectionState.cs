@@ -7,15 +7,17 @@ namespace server.component.clientManager.component.clientShell.information
     {
         public enum Enum
         {
-            None = 4,
-            ReceiveLoginAndPassword = 8,
-            Authorization = 16,
-            SubscribeReceiveTCPConnection = 32,
-            CreatingTCPConnection = 64,
-            UnsubscribeReceiveTCPConnection = 128,
-            SubscribeReceiveFirstUDPPacket = 256,
-            CreatingUDPConnection = 512,
-            UnsubscribeReceiveFirstUDPPacket= 1024,
+            None = 8,
+            ReceiveLoginAndPassword = 16,
+            Authorization = 32,
+            SubscribeReceiveTCPConnection = 64,
+            CreatingTCPConnection = 128,
+            UnsubscribeReceiveTCPConnection = 256,
+            SubscribeReceiveFirstUDPPacket = 512,
+            CreatingUDPConnection = 1024,
+            UnsubscribeReceiveFirstUDPPacket = 2048,
+
+            Connected = 4096,
         }
 
         private const string DESTROYING_ERROR = "Невозможно сменить состояние обьекта, как он уничтожается.";
@@ -436,6 +438,28 @@ namespace server.component.clientManager.component.clientShell.information
                 }
                 else
                 {
+                    return false;
+                }
+            }
+        }
+
+        public bool SetConnect(out string error)
+        {
+            lock (_locker)
+            {
+                error = null;
+
+                if (CurrentState.HasFlag(Enum.UnsubscribeReceiveFirstUDPPacket))
+                {
+                    CurrentState = Enum.Connected;
+
+                    return true;
+                }
+                else
+                {
+                    error = string.Format(SET_ERROR, Enum.Connected, 
+                        Enum.UnsubscribeReceiveFirstUDPPacket,CurrentState);
+
                     return false;
                 }
             }

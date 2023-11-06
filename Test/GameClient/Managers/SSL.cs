@@ -16,14 +16,22 @@ namespace gameClient.manager
 
         private readonly Connection.ISSL _connectionResult;
         private readonly TCP.IConnection _tcpConnection;
+        private readonly UDP.IConnection _udpConnection;
 
         private int IDConnection = -1;
 
-        public SSL(Connection.ISSL connectionResult, TCP.IConnection tcpConnection) 
+        /// <summary>
+        /// Соединение установлено.
+        /// </summary>
+        private bool _isConnect = false;
+
+        public SSL(Connection.ISSL connectionResult, TCP.IConnection tcpConnection, 
+            UDP.IConnection udpConnection) 
             : base("SSL//:")
         {
             _connectionResult = connectionResult;
             _tcpConnection = tcpConnection;
+            _udpConnection = udpConnection;
         }
 
         #region Update
@@ -53,9 +61,10 @@ namespace gameClient.manager
                 do
                 {
                     byte[] buffer = new byte[8192];
+
                     int count = _TCPSocket.Receive(buffer);
 
-                    Receive(buffer, count);
+                    Process(buffer, count);
 
                     available -= count;
                 }
@@ -100,15 +109,14 @@ namespace gameClient.manager
                 i < (ssl.Data.ClientToServer.Connection.Step.PASSWORD_START_INDEX + p.Length); i++)
                 message[i] = p[passwordIndex++];
 
-            _messages.Enqueue(message);
-            Interlocked.Increment(ref _messagesCount);
+            _messages.Enqueue(message); Interlocked.Increment(ref _messagesCount);
         }
 
         #endregion
 
         #region Input
 
-        public void Receive(byte[] message, int size)
+        public void Process(byte[] message, int size)
         {
             byte[][] messages = SplitTCPMessage(message, size);
 
@@ -143,6 +151,22 @@ namespace gameClient.manager
                     }
                     else if (type == ssl.Data.ServerToClient.Connection.Step2.TYPE)
                     {
+                        Task.Run(() => 
+                        {
+                            int step = 25;
+
+                            while (_isConnect == false && step-- > 0)
+                            {
+                                _udpConnection.SendFirstPacket(IDConnection);
+
+                                System.Threading.Thread.Sleep(50);
+                            }
+                        });
+                    }
+                    else if (type == ssl.Data.ServerToClient.Connection.Step3.TYPE)
+                    {
+                        _isConnect = true;
+                        SystemInformation("Connect");
                     }
 #if INFO
                     else
