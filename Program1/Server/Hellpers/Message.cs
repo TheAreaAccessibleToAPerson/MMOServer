@@ -100,7 +100,7 @@ namespace ssl
                 /// <summary>
                 /// Заправшивается первый UDP пакет.
                 /// </summary>
-                public struct Step2 
+                public struct Step2
                 {
                     public const int LENGTH = Header.LENGTH;
                     public const int TYPE = (int)Data.Type.ServerToClientConnectionStep2;
@@ -186,7 +186,7 @@ namespace udp
         public const int LENGTH = 3;
 
         /// <summary>
-        /// Максимальная длина.
+        /// Максимальная длина udp пакета.
         /// </summary>
         public const int MAX_LENGTH = 512;
 
@@ -198,6 +198,7 @@ namespace udp
         /// Индекс который указывает на второй байт хранящий длину всего сообщения.
         /// </summary>
         public const int DATA_LENGTH_INDEX_2byte = 1;
+
         /// <summary>
         /// Индекс который указывает на первый байт хранящий тип сообщения.
         /// </summary>
@@ -222,9 +223,6 @@ namespace udp
                 }
             }
 
-            public struct Message
-            {
-            }
 
             public struct Disconnection
             {
@@ -252,7 +250,24 @@ namespace udp
 
             public struct Message
             {
-                public const int TYPE = (int)Type.Message;
+                public const int TYPE = (int)Type.Capsules;
+
+                public struct Packet
+                {
+                    /// <summary>
+                    /// Нажата клавиша движение в лево.
+                    /// </summary>
+                    public struct DownButtonLeftMove
+                    {
+                        public const int TYPE = (int)Type.DownButtonLeftMove;
+                    }
+
+                    public enum Type
+                    {
+                        None,
+                        DownButtonLeftMove,
+                    }
+                }
             }
 
             public struct Disconnection
@@ -260,17 +275,17 @@ namespace udp
             }
         }
 
-        public enum Type
+        public enum Type 
         {
             ClientToServerConnectionStep1 = 4,
             ServerToClientConnectionStep1 = 8,
 
-            Message = 16,
+            Capsules = 16,
 
-            /// Прибытие пакета с данными.
+            // Подтверждение что пакет с данными был получен.
             Arrival = 32,
 
-            // Прибытие подтвержения что отправленый пакет был доставлен.
+            // Подтверждение что пакет с подтверждение получения пакета получен.
             Acknoledgment = 64,
         }
     }
@@ -285,6 +300,7 @@ namespace udp
 // length message 1
 // id message 
 // data time 9                   
+// 24/12/2000:22/13/55.888
 // position 8
 // direction 1
 // DATA
@@ -293,21 +309,33 @@ public struct Capsule
 {
     public struct Header
     {
-        public const int LENGTH = 6;
+        // Длина заголовка.
+        private const int LENGTH = 13;
+        // Индекс хранящий длину заголовка.
         public const int LENGTH_INDEX = 0;
 
         /// <summary>
         /// Тип капсулы:
         /// ACK - 0 - подтверждение получения сообщения.(получатель -> отправитель)
         /// FIN - 1 - получение подтверждения получения сообщения(отправитель -> получатель)
-        /// PUSH - >2 - игровое сообщение: передвежение.
+        /// PUSH - 2 - игровое сообщение: передвежение.
         /// </summary>
         public const int TYPE_INDEX = LENGTH_INDEX + 1;
 
-        public const int ID_INDEX_1byte = TYPE_INDEX + 1;
-        public const int ID_INDEX_2byte = ID_INDEX_1byte + 1;
-        public const int ID_INDEX_3byte = ID_INDEX_2byte + 1;
-        public const int ID_INDEX_4byte = ID_INDEX_3byte + 1;
+        public const int ID_INDEX_1b = TYPE_INDEX + 1;
+        public const int ID_INDEX_2b = ID_INDEX_1b + 1;
+
+        public const int YEAR_INDEX_1b = ID_INDEX_2b + 1;
+        public const int YEAR_INDEX_2b = YEAR_INDEX_1b + 1;
+        public const int MOUNTH_INDEX = YEAR_INDEX_2b + 1;
+        public const int DAY_INDEX = MOUNTH_INDEX + 1;
+
+        public const int HOUR_INDEX = DAY_INDEX + 1;
+        public const int MIN_INDEX = HOUR_INDEX + 1;
+        public const int SEC_INDEX = MIN_INDEX + 1;
+        public const int MILL_INDEX_1b = SEC_INDEX + 1;
+        public const int MILL_INDEX_2b = MILL_INDEX_1b + 1;
+
 
         /// <summary>
         /// Подтверждение получения PSH сообщения.
@@ -318,7 +346,7 @@ public struct Capsule
 
             public const int TYPE = 0;
 
-            public const int LENGTH = Header.LENGTH + 0;
+            public const int LENGTH = Header.LENGTH + 2;
 
             /// <summary>
             /// ID отправленого push сообщения.
@@ -328,14 +356,6 @@ public struct Capsule
             /// ID отправленого push сообщения.
             /// </summary>
             public const int ACKNOLEDGMENT_MESSAGE_ID_2byte = ACKNOLEDGMENT_MESSAGE_ID_1byte + 1;
-            /// <summary>
-            /// ID отправленого push сообщения.
-            /// </summary>
-            public const int ACKNOLEDGMENT_MESSAGE_ID_3byte = ACKNOLEDGMENT_MESSAGE_ID_2byte + 1;
-            /// <summary>
-            /// ID отправленого push сообщения.
-            /// </summary>
-            public const int ACKNOLEDGMENT_MESSAGE_ID_4byte = ACKNOLEDGMENT_MESSAGE_ID_3byte + 1;
         }
 
         public struct FIN
@@ -366,38 +386,41 @@ public struct Capsule
 
         public struct PSH
         {
-            public const string NAME = "PSH";
+            // Тип капсулы.
+            public const byte TYPE = 2;
 
-            /// <summary>
-            /// Даный тип указывает что данная капсула сообщает об передвижении.
-            /// </summary>
-            public const int MOVE_TYPE = 1;
+            private const int LENGTH = 4;
+            public const int UNIT_ID_INDEX_1b = Capsule.Header.LENGTH;
+            public const int UNIT_ID_INDEX_2b = UNIT_ID_INDEX_1b + 1;
+            public const int UNIT_ID_INDEX_3b = UNIT_ID_INDEX_2b + 1;
+            public const int UNIT_ID_INDEX_4b = UNIT_ID_INDEX_3b + 1;
 
-            public const int LENGTH = Header.LENGTH + 19;
+            public struct NextXPosition
+            {
+                /// Длина капсулы.
+                public const byte LENGTH
+                    = Capsule.Header.LENGTH + PSH.LENGTH + 5;
 
-            public const int DATA_AGE_INDEX = ID_INDEX_4byte + 1;
-            public const int DATA_MOUNTH_INDEX = DATA_AGE_INDEX + 1;
-            public const int DATA_DAY_INDEX = DATA_MOUNTH_INDEX + 1;
-            public const int TIME_HOUR_INDEX = DATA_DAY_INDEX + 1;
-            public const int TIME_MIN_INDEX = TIME_HOUR_INDEX + 1;
-            public const int TIME_SEC_INDEX = TIME_MIN_INDEX + 1;
-            public const int TIME_MILL_INDEX_1byte = TIME_SEC_INDEX + 1;
-            public const int TIME_MILL_INDEX_2byte = TIME_MILL_INDEX_1byte + 1;
+                // Тип данных хранящехся в капсуле.
+                public const byte TYPE = (int)Type.NextXPosition;
+                // Инедкс указывающий на тип данных хранящихся в капсуле.
+                public const byte TYPE_INDEX = LENGTH;
 
-            public const int POSITION_X_INDEX_1byte = TIME_MILL_INDEX_2byte + 1;
-            public const int POSITION_X_INDEX_2byte = POSITION_X_INDEX_1byte + 1;
-            public const int POSITION_X_INDEX_3byte = POSITION_X_INDEX_2byte + 1;
-            public const int POSITION_X_INDEX_4byte = POSITION_X_INDEX_3byte + 1;
+                // Значение position X
+                public const int INDEX_1b = UNIT_ID_INDEX_2b + 1;
+                // Значение position X
+                public const int INDEX_2b = INDEX_1b + 1;
+                // Значение position X
+                public const int INDEX_3b = INDEX_2b + 1;
+                // Значение position X
+                public const int INDEX_4b = INDEX_3b + 1;
+            }
 
-            public const int POSITION_Y_INDEX_1byte = POSITION_X_INDEX_4byte + 1;
-            public const int POSITION_Y_INDEX_2byte = POSITION_Y_INDEX_1byte + 1;
-            public const int POSITION_Y_INDEX_3byte = POSITION_Y_INDEX_2byte + 1;
-            public const int POSITION_Y_INDEX_4byte = POSITION_Y_INDEX_3byte + 1;
-
-            /// <summary>
-            /// 0 - LEFT, 1 - RIGHT
-            /// </summary>
-            public const int DIRECTIONG_INDEX = POSITION_Y_INDEX_4byte + 1;
+            public enum Type
+            {
+                None,
+                NextXPosition,
+            }
         }
     }
 }

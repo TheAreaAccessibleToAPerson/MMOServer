@@ -5,23 +5,24 @@
 using System.Net;
 using System.Net.Sockets;
 using Butterfly;
-using gameClient.manager;
 
 namespace server.component.clientManager.component.clientShell
 {
     public abstract class ConnectionController : Handler.Messages,
         ConnectionController.IReceiveFirstUDPPacket, ConnectionController.IReceiveTCPConnection
     {
+        protected abstract void CreatingClientObject(ConnectData connectData);
+
 #if CSL
         /// <summary>
         /// Отправка сообщений в логгер.
         /// </summary>
-        protected IInput<string> i_logger;
+        protected IInput<string> I_logger;
 
         protected void _logger(string info)
         {
             if (StateInformation.IsCallConstruction)
-                i_logger.To($"{GetExplorer()}:{info}");
+                I_logger.To($"{GetExplorer()}:{info}");
         }
 
 #endif
@@ -79,6 +80,9 @@ namespace server.component.clientManager.component.clientShell
         /// Данный ID должен придти в первом UDP пакете.
         /// </summary>
         private int ConnectionID = 155;
+
+        private string _udpAddress;
+        private int _udpPort;
 
         private TcpClient _tcpConnection;
 
@@ -254,6 +258,9 @@ namespace server.component.clientManager.component.clientShell
                         ssl.Data.ServerToClient.Connection.Step3.TYPE,
                         /**************************************************/
                     });
+
+                    CreatingClientObject(new ConnectData(Destroy, 1, ConnectionID, Field, _tcpConnection,
+                        _udpAddress, _udpPort));
                 }
                 else Destroy(setConnectError);
             }
@@ -393,7 +400,13 @@ namespace server.component.clientManager.component.clientShell
                             message[udp.Data.ServerToClient.Connection.Step.RECEIVE_ID_3byte] << 8 ^
                             message[udp.Data.ServerToClient.Connection.Step.RECEIVE_ID_4byte];
 
-                        if (id == ConnectionID) Process();
+                        if (id == ConnectionID)
+                        {
+                            _udpAddress = address;
+                            _udpPort = port;
+
+                            Process();
+                        }
                     }
                 }
             }

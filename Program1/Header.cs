@@ -14,11 +14,12 @@ public class Header : Controller, ReadLine.IInformation
         /// <summary>
         /// Событие отвечающее за работу и обработку получаемых UDP пакетов.
         /// </summary>
-        public const string WORK_UDP_PACKETS = "WorkUDPPackets";
-
+        public const string PROCESSING_OF_RECEIVED_UDP_PACKETS = "ProcessingOfReceivedUDPPackets";
+        public const string PROCESSING_OF_SENDING_UDP_PACKETS = "ProcessingOfSendingUDPPackets";
         public const string WORK_SSL = "ReceiveSSL";
-
         public const string WORK_BD = "BD";
+
+        public const string ROOM_1 = "Room_1";
     }
 
     private readonly Logger _logger = new();
@@ -35,8 +36,9 @@ public class Header : Controller, ReadLine.IInformation
             .output_to(_logger.add_client_object_component_info);
 
         listen_events(Event.WORK_OBJECT, Event.WORK_OBJECT);
-        listen_events(Event.WORK_UDP_PACKETS, Event.WORK_UDP_PACKETS);
+        listen_events(Event.PROCESSING_OF_RECEIVED_UDP_PACKETS, Event.PROCESSING_OF_RECEIVED_UDP_PACKETS);
         listen_events(Event.WORK_SSL, Event.WORK_SSL);
+        listen_events(Event.ROOM_1, Event.ROOM_1);
     }
 
     public const string ADDRESS = "127.0.0.1";
@@ -57,7 +59,7 @@ public class Header : Controller, ReadLine.IInformation
     {
         if (command == "c")
         {
-            obj<Client1>("Client111");
+            obj<Client>("Client111");
         }
     }
 }

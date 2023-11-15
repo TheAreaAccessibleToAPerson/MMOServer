@@ -1,6 +1,6 @@
 using Butterfly;
 
-public class Client1 : Controller.Board
+public class Client : Controller.Board
 {
     void Start()
     {
@@ -10,5 +10,22 @@ public class Client1 : Controller.Board
 
         client.Start("login", "password", 
             Header.ADDRESS, Header.SSL_PORT, Header.TCP_PORT, Header.UDP_PORT);
+    }
+}
+
+public class ClientTest
+{
+    // Записываем пакеты.
+    private byte[][] bytes = new byte[1024][];
+
+    public void SendUpDownLeftMove()
+    {
+    }
+}
+
+public class ServerTest
+{
+    public void Receive()
+    {
     }
 }

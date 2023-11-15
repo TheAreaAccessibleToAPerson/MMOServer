@@ -10,13 +10,16 @@ namespace server
                 (component.ClientsManager.NAME);
 
             obj<component.ListenSSLClientsShell> 
-                (component.ListenSSLClientsShell.NAME, Field.SSLListenClientsSetting);
+                (component.ListenSSLClientsShell.NAME, 
+                    Field.SSLListenClientsSetting);
 
             obj<component.ListenTCPClientsShell> 
-                (component.ListenTCPClientsShell.NAME, Field.TCPListenClientsSetting);
+                (component.ListenTCPClientsShell.NAME, 
+                    Field.TCPListenClientsSetting);
 
             obj<component.ReceiveUDPShell>
-                (component.ReceiveUDPShell.NAME, Field.ReceiveUDPPacketsSetting);
+                (component.ReceiveUDPShell.NAME, 
+                    Field.ReceiveUDPPacketsSetting);
 
             /**************TEST*****************/
             listen_message<component.clientManager.component.clientShell.information.Client>

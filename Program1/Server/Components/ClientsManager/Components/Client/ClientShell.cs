@@ -1,16 +1,17 @@
 #define CSL
 #define EX
 
-using Butterfly;
-
 namespace server.component.clientManager.component
 {
     public sealed class ClientShell : clientShell.ConnectionController
     {
+        protected override void CreatingClientObject(ConnectData connectData)
+            => obj<ClientObject>(GetKey(), connectData);
+
         void Construction()
         {
 #if CSL
-            send_message(ref i_logger, Logger.BUS.Message.CLIENT_SHELL_COMPONENT);
+            send_message(ref I_logger, Logger.BUS.Message.CLIENT_SHELL_COMPONENT);
 #endif
 
             input_to(ref I_process, Header.Event.WORK_OBJECT, Process);
@@ -38,15 +39,7 @@ namespace server.component.clientManager.component
             ClientInformation = new(4, 16, 4, 16, I_process);
         }
 
-        void Start()
-        {
-            Process();
-        }
-
-        void Destruction() 
-        {
-            SystemInformation("Destruction");
-        }
+        void Start() => Process();
 
         void Stop()
         {
@@ -64,21 +57,42 @@ namespace server.component.clientManager.component
             }
         }
 
-        private sealed class Object : ConnectController
+
+        private sealed class ClientObject : ConnectControl
         {
             void Construction()
             {
+                add_event(Header.Event.PROCESSING_OF_SENDING_UDP_PACKETS, 
+                    10, Field.Process);
+
+                /*
+                input_to(ref Field.I_sendUDP, 
+                    Header.Event.PROCESSING_OF_SENDING_UDP_PACKETS, Field.AddCapsules);
+                */
             }
 
             void Start()
             {
+                _isRunning = true;
             }
 
             void Stop()
             {
-
             }
 
+            void Destruction()
+            {
+                _isRunning = false;
+            }
+
+            void Configurate()
+            {
+                try
+                {
+                    Field.Connect();
+                }
+                catch { destroy(); }
+            }
         }
     }
 }
