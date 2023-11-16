@@ -2,6 +2,7 @@
 #define INFO
 
 using System.Net.Sockets;
+using System.Security.Cryptography.X509Certificates;
 using Butterfly;
 
 namespace server.component.clientManager.component
@@ -174,13 +175,24 @@ namespace server.component.clientManager.component
                                 {
                                     if (_capsulesInformation[i][CAPSULE_ID] == acknoledgmentNumber)
                                     {
+                                        // Извлекли данные отправленой капсулы ожидающей подтверждения.
                                         int packetIndex = _capsulesInformation[i][CAPSULE_PACKET_INDEX];
                                         int startIndex = _capsulesInformation[i][CAPSULE_START_INDEX];
                                         int capsuleLength = _capsulesInformation[i][CAPSULE_LENGTH];
 
+                                        // Декриментируем количесво капсул.
+                                        // И получаем индекс крайней капсулы.
+                                        int lastCapsuleIndex = --_capsulesInformationCount;
+                                        // Удалилям данныe о капсуле.
+                                        if (lastCapsuleIndex > 0 && lastCapsuleIndex > i && lastCapsuleIndex != i)
+                                        {
+                                            // Крайний записываем в удаленый.
+                                            _capsulesInformation[i] = _capsulesInformation[lastCapsuleIndex];
+                                        }
+
 #if INFO
                                         SystemInformation($"Капсула для которой прибыло подтверждение:" +
-                                            $"Index:{i}." +
+                                            $"Index:{i}" +
                                             $"IndexPacket:{packetIndex}" +
                                             $"Start:{startIndex}" +
                                             $"Length:{capsuleLength}");
@@ -205,7 +217,6 @@ namespace server.component.clientManager.component
 
                                         // Перезаписываем длину пакета.
                                         _packetsLength[i] = startIndex;
-
 #if INFO
                                         SystemInformation($"Новая длина пакета {_packetsLength[i]}.");
 #endif
@@ -217,20 +228,30 @@ namespace server.component.clientManager.component
 #endif
                                             _packets[i] = null;
 
-                                            // Если пакетов более чем 1, то поставим в данное место крайний пакет.
-                                            if (_packetsCount > 1)
+                                            // Индекс крайнего пакета, который переедит на новое место.
+                                            // Дикрементируем количесво пакетов.
+                                            int lastIndexPacket = --_packetsCount;
+
+                                            // Если пакетов более чем 1 и текущий пакет не является крайним.
+                                            // то поставим в данное место крайний пакет.
+                                            if (lastIndexPacket > 1)
                                             {
 #if INFO
                                                 SystemInformation("Пакетов более чем один.");
 #endif
-                                                // Индекс крайнего пакета, который переедит на новое место.
-                                                int changingIndexPacket = _packetsCount - 1;
                                                 // Переносим крайний пакет в освободившийся слот.
-                                                _packets[i] = _packets[changingIndexPacket];
+                                                _packets[i] = _packets[lastIndexPacket];
 
-                                                // Перезаписываем данные капсул которые хранятся в только что
-                                                // переехавшем пакете.
-                                                
+                                                // Перезаписываем данные о место положении капсул 
+                                                // которые хранятся в только что переехавшем пакете.
+                                                for (int m = 0; m < _capsulesInformationCount; m++)
+                                                {
+                                                    if (lastIndexPacket
+                                                        == _capsulesInformation[m][CAPSULE_PACKET_INDEX])
+                                                    {
+                                                        _capsulesInformation[m][CAPSULE_PACKET_INDEX] = i;
+                                                    }
+                                                }
                                             }
                                         }
                                     }
