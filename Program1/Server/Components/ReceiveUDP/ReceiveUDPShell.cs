@@ -81,29 +81,33 @@ namespace server.component
 
         void Construction()
         {
+#if SCL
             send_message(ref i_componentLogger, Logger.BUS.Message.SERVER_COMPONENTS);
+#endif
 
             listen_message<int[], string[], int[], byte[][], int>
                 (BUS.Message.RECEIVE_PACKETS)
-                    .output_to(ReceivePackets, Header.Event.PROCESSING_OF_RECEIVED_UDP_PACKETS);
+                    .output_to(ReceivePackets,
+                        Header.Event.PROCESSING_OF_RECEIVED_UDP_PACKETS);
 
-/*
-            listen_echo_2_0<uint, clientShell.ConnectionController.IReceiveFirstUDPPacket>
+            listen_echo_2_0<string, clientManager.component.UDP.IReceivePackets>
                 (BUS.Echo.SUBSCRIBE_TO_RECEIVE_THE_PACKETS)
-                    .output_to(Subscribe, Header1.Event.WORK_UDP_PACKETS);
+                    .output_to(SubscribeReceiveUDPPackets,
+                        Header.Event.PROCESSING_OF_RECEIVED_UDP_PACKETS);
 
-            listen_echo_1_0<ulong>
-                (BUS.Echo.UNSUBSCRIBE_TO_RECEIVE_THE_PACKETS)
-                    .output_to(Unsubscribe, Header1.Event.WORK_UDP_PACKETS);
-                    */
+            listen_echo_1_0<string>(BUS.Echo.UNSUBSCRIBE_TO_RECEIVE_THE_PACKETS)
+                .output_to(UnsubscribeReceiveUDPPackets,
+                    Header.Event.PROCESSING_OF_RECEIVED_UDP_PACKETS);
 
             listen_echo_2_0<string, clientManager.component.clientShell.ConnectionController.IReceiveFirstUDPPacket>
                 (BUS.Echo.SUBSCRIBE_TO_RECEIVE_THE_FIRST_PACKET)
-                    .output_to(SubscribeReceiveFirstUDPPacket, Header.Event.PROCESSING_OF_RECEIVED_UDP_PACKETS);
+                    .output_to(SubscribeReceiveFirstUDPPacket,
+                        Header.Event.PROCESSING_OF_RECEIVED_UDP_PACKETS);
 
             listen_echo_1_0<string>
                 (BUS.Echo.UNSUBSCRIBE_TO_RECEIVE_THE_FIRST_PACKET)
-                    .output_to(UnsubscribeReceiveFirstUDPPacket, Header.Event.PROCESSING_OF_RECEIVED_UDP_PACKETS);
+                    .output_to(UnsubscribeReceiveFirstUDPPacket,
+                         Header.Event.PROCESSING_OF_RECEIVED_UDP_PACKETS);
 
             listen_impuls(BUS.Impuls.START)
                 .output_to((infoObj) =>

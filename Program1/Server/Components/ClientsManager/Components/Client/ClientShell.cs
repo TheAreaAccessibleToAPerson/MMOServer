@@ -1,5 +1,8 @@
 #define CSL
 #define EX
+#define INFO
+
+using Butterfly;
 
 namespace server.component.clientManager.component
 {
@@ -49,40 +52,60 @@ namespace server.component.clientManager.component
 
                 if (ConnectionState.IsUnsubscribeTCPConnection)
                     I_unsubscribeReceiveToTCPConnection.To
-                        (((System.Net.IPEndPoint)Field.Client.RemoteEndPoint).Address.ToString());
+                        (((System.Net.IPEndPoint)Field.Client.RemoteEndPoint)
+                            .Address.ToString());
 
                 if (ConnectionState.IsUnsubscribeUDPConnection)
                     I_unsubscribeToReceiveFirstUDPPacket.To
-                        (((System.Net.IPEndPoint)Field.Client.RemoteEndPoint).Address.ToString());
+                        (((System.Net.IPEndPoint)Field.Client.RemoteEndPoint)
+                            .Address.ToString());
             }
         }
 
-
-        private sealed class ClientObject : ConnectControl
+        private sealed class ClientObject : ClientController
         {
+            protected IInput<string, ConnectData> I_registerInRoom;
+            protected IInput<string, ConnectData> I_subscribeReceiveUDPPackets;
+            protected IInput<string> I_unsubscribeReceiveUDPPackets;
+
             void Construction()
             {
-                add_event(Header.Event.PROCESSING_OF_SENDING_UDP_PACKETS, 
+                add_event(Header.Event.PROCESSING_OF_SENDING_UDP_PACKETS,
                     10, Field.Process);
 
-                /*
-                input_to(ref Field.I_sendUDP, 
-                    Header.Event.PROCESSING_OF_SENDING_UDP_PACKETS, Field.AddCapsules);
-                */
+                send_echo_2_0(ref I_subscribeReceiveUDPPackets, 
+                    ReceiveUDPShell.BUS.Echo.SUBSCRIBE_TO_RECEIVE_THE_PACKETS)
+                        .output_to(() => 
+                        {
+                        }, 
+                        Header.Event.WORK_OBJECT);
+
+                send_echo_1_0(ref I_unsubscribeReceiveUDPPackets, 
+                    ReceiveUDPShell.BUS.Echo.UNSUBSCRIBE_TO_RECEIVE_THE_PACKETS)
+                        .output_to(() => 
+                        {
+                        }, 
+                        Header.Event.WORK_OBJECT);
+
+                send_echo_2_0(ref I_registerInRoom,
+                    WorldManager.BUS.Echo.REGISTER_IN_ROOM)
+                        .output_to(() =>
+                        {
+                        }, 
+                        Header.Event.WORK_OBJECT);
             }
 
             void Start()
             {
-                _isRunning = true;
             }
 
             void Stop()
             {
+
             }
 
             void Destruction()
             {
-                _isRunning = false;
             }
 
             void Configurate()

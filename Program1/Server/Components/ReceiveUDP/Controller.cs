@@ -2,6 +2,7 @@
 #define SCL
 
 using Butterfly;
+using gameClient.manager;
 
 namespace server.component.ReceiveUDP
 {
@@ -14,14 +15,12 @@ namespace server.component.ReceiveUDP
         /// </summary>
         protected IInput<string> i_componentLogger;
 #endif
-        /*
         /// <summary>
         /// Сюда пописываются клиеты которое ожидают получения UDP пакетов.
         /// </summary>
         /// <returns></returns>
-        protected readonly Dictionary<string, clientShell.ConnectionController.IReceiveFirstUDPPacket> 
-            _clientsReceiveUDPPackets = new ();
-            */
+        protected readonly Dictionary<string, clientManager.component.UDP.IReceivePackets>
+            _clientsReceiveUDPPackets = new();
 
         /// <summary>
         /// Сюда подписываются клиенты ожидающие первый UDP пакет.
@@ -32,24 +31,23 @@ namespace server.component.ReceiveUDP
         protected readonly Dictionary<string, clientManager.component.clientShell.ConnectionController.IReceiveFirstUDPPacket>
             _clientsReceiveFirstUDPPackets = new();
 
-        protected void ReceivePackets(int[] types, string[] addresses, int[] ports, byte[][] packets, int length)
+        protected void ReceivePackets(int[] types, string[] addresses, int[] ports,
+            byte[][] packets, int length)
         {
             for (int i = 0; i < length; i++)
             {
                 if (types[i] == udp.Data.ClientToServer.Message.TYPE)
                 {
-                    /*
-                    if (_clientsReceiveUDPPackets.TryGetValue(clientKeys[i],
-                        out Client.ConnectController.IReceiveUDPPackets client))
+                    if (_clientsReceiveUDPPackets.TryGetValue(addresses[i],
+                        out clientManager.component.UDP.IReceivePackets client))
                     {
                         client.Receive(packets[i]);
                     }
 #if INFO
-                    else SystemInformation($"Клиента [address:{clientKeys[i] >> 16}, " +
-                        $"port{ushort.MaxValue & (int)clientKeys[i]}] ожидаеющего" +
+                    else SystemInformation($"Клиента [address:{addresses[i]}, " +
+                        $"port{ports[i]}] ожидаеющего" +
                         "UDP пакета не сущесвует.", ConsoleColor.Red);
 #endif
-*/
                 }
                 else if (types[i] == udp.Data.ClientToServer.Connection.Step.TYPE)
                 {
@@ -65,45 +63,51 @@ namespace server.component.ReceiveUDP
             }
         }
 
-        /*
-                protected void Subscribe(ulong key, clientShell.ConnectionController.IReceiveFirstUDPPacket client,
-                    IReturn @return)
-                {
-                    if (_clientsReceiveUDPPackets.ContainsKey(key))
-                    {
-        #if SCL
-                        _logger($"Неудачная попытка подписать клиента {@return.GetKey()} по ключу {key}" +
-                            $"на прослушку UDP пакетов, так как клиент с таким ключом уже подписан.");
-        #endif
-                    }
-                    else
-                    {
-                        if (_clientsReceiveFirstUDPPackets.Remove(id))
-                        {
-        #if INFO
-                            SystemInformation
-                                ($"Клиент {@return.GetKey()} отписался от прослушки первого UDP пакетa.",
-                                        ConsoleColor.Green);
+        protected void SubscribeReceiveUDPPackets(string address,
+            clientManager.component.UDP.IReceivePackets client, IReturn @return)
+        {
+            if (_clientsReceiveUDPPackets.ContainsKey(address))
+            {
+#if SCL
+                _logger($"Неудачная попытка подписать клиента {@return.GetKey()} по ключу {address}" +
+                    $"на прослушку UDP пакетов, так как клиент с таким ключом уже подписан.");
+#endif
+            }
+            else
+            {
+#if INFO
+                SystemInformation($"Клиент {@return.GetKey()} подписался на прослушку " +
+                    $"входящих UDP пакетов.");
+#endif
 
-                            SystemInformation
-                                ($"Клиент {@return.GetKey()} подписался на прослушкy UDP пакетов.",
-                                        ConsoleColor.Green);
-        #endif
-                            _clientsReceiveUDPPackets.Add(key, client);
+                _clientsReceiveUDPPackets.Add(address, client);
 
-                            // Оповестим что подписка окончена.
-                            @return.To();
-                        }
-        #if SCL
-                        else _logger($"Неудлось отписать клинта {@return.GetKey()} по ключу {id} " +
-                            $"от прослушки первого UDP пакета.");
-        #endif
-                    }
-                }
-                */
+                @return.To();
+            }
+        }
+
+
+        protected void UnsubscribeReceiveUDPPackets(string address, IReturn @return)
+        {
+            if (_clientsReceiveUDPPackets.Remove(address))
+            {
+#if INFO
+                    SystemInformation
+                        ($"Клиент {@return.GetKey()}/" +
+                            $"{address} отписался от прослушки UDP пакетов.",
+                                ConsoleColor.Green);
+#endif
+            }
+#if SCL
+            else 
+                _logger($"Неудалось отписаться клиенту {@return.GetKey()} по ключу {address} " + 
+                    "от прослушки udp пакетов.");
+#endif
+        }
 
         protected void SubscribeReceiveFirstUDPPacket(string address,
-            clientManager.component.clientShell.ConnectionController.IReceiveFirstUDPPacket client, IReturn @return)
+            clientManager.component.clientShell.ConnectionController.IReceiveFirstUDPPacket client,
+                IReturn @return)
         {
             if (_clientsReceiveFirstUDPPackets.ContainsKey(address))
             {
@@ -125,26 +129,6 @@ namespace server.component.ReceiveUDP
                 @return.To();
             }
         }
-
-        /*
-        protected void UnsubscribeReceiveUDPPackets(string address, IReturn @return)
-        {
-            if (_clientsReceiveUDPPackets.Remove(address))
-            {
-#if INFO
-                    SystemInformation
-                        ($"Клиент {@return.GetKey()}/" +
-                            $"{address} отписался от прослушки UDP пакетов.",
-                                ConsoleColor.Green);
-#endif
-            }
-#if SCL
-            else 
-                _logger($"Неудалось отписаться клиенту {@return.GetKey()} по ключу {address} " + 
-                    "от прослушки udp пакетов.");
-#endif
-        }
-        */
 
         protected void UnsubscribeReceiveFirstUDPPacket(string address, IReturn @return)
         {

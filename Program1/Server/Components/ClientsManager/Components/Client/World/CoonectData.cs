@@ -2,19 +2,17 @@
 #define INFO
 
 using System.Net.Sockets;
-using System.Security.Cryptography.X509Certificates;
 using Butterfly;
 
 namespace server.component.clientManager.component
 {
     public sealed class ConnectData : PacketHandler
     {
-        public int Index = -1;
-
         public readonly int ClientID;
         public readonly int UnitID;
 
-        public readonly TcpClient SSL; public readonly TcpClient TCP;
+        public readonly TcpClient SSL; 
+        public readonly TcpClient TCP;
 
 
         public ConnectData(Action<string> destroy, int clientID, int unitID,
@@ -26,8 +24,6 @@ namespace server.component.clientManager.component
             SSL = ssl;
             TCP = tcp;
         }
-
-        public Action<int> DownMove;
 
     }
 
@@ -75,7 +71,7 @@ namespace server.component.clientManager.component
         }
     }
 
-    public abstract class UDP : DDD, UDP.IReceiveUDPPackets
+    public abstract class UDP : DDD, UDP.IReceivePackets
     {
         public IInput<byte[]> I_sendUDP;
 
@@ -157,14 +153,14 @@ namespace server.component.clientManager.component
                     while ((++index) < packetLength)
                     {
                         int capsuleType = packet[index];
-                        if (capsuleType == Capsule.Header.ACK.TYPE)
+                        if (capsuleType == Capsule.Header.ACK.TYPE || capsuleType == Capsule.Header.FIN.TYPE)
                         {
                             if (index + Capsule.Header.ACK.LENGTH < packetLength)
                             {
                                 // Получаем номер подтверждения.
                                 int acknoledgmentNumber
-                                    = packet[index + Capsule.Header.ACK.ACKNOLEDGMENT_MESSAGE_ID_1byte] << 8 ^
-                                        packet[index + Capsule.Header.ACK.ACKNOLEDGMENT_MESSAGE_ID_2byte];
+                                    = packet[index + Capsule.Header.ACK.ACKNOLEDGMENT_ID_1byte] << 8 ^
+                                        packet[index + Capsule.Header.ACK.ACKNOLEDGMENT_ID_2byte];
 
 #if INFO
                                 SystemInformation($"ACK:{acknoledgmentNumber}.");
@@ -254,6 +250,14 @@ namespace server.component.clientManager.component
                                                 }
                                             }
                                         }
+
+                                        if (capsuleType == Capsule.Header.ACK.TYPE)
+                                        {
+                                            AddCapsule(new byte[]
+                                            {
+                                                Capsule.Header.FIN.TYPE,
+                                            });
+                                        }
                                     }
                                 }
                             }
@@ -296,6 +300,96 @@ namespace server.component.clientManager.component
 #endif
         }
 
+        private void AddCapsule(byte[] capsule)
+        {
+            // Сюда запишим интекс пакета в который будет
+            // записана текущая капсула. По умолчанию предпологаем
+            // что капсула не куда не влезла.
+            int packetIndex = _packetsCount;
+            // Проверяем имеется ли место в уже созданых
+            // пакетах для новой капсулы.
+            for (int u = 0; u < _packetsCount; u++)
+            {
+                if ((_packetsLength[u] + capsule.Length)
+                    <= udp.Header.MAX_LENGTH)
+                {
+                    packetIndex = u;
+                    break;
+                }
+            }
+
+            // Капсула некуда не влезла, создаем 
+            // новый пакет.
+            if (packetIndex == _packetsCount)
+            {
+                byte[] packet = new byte[udp.Header.MAX_LENGTH];
+
+                // Формируем заголовок пакета.
+                // Длина заголовка.
+                packet[udp.Header.DATA_LENGTH_INDEX_1byte]
+                    = udp.Header.LENGTH >> 8;
+                packet[udp.Header.DATA_LENGTH_INDEX_2byte]
+                    = udp.Header.LENGTH;
+
+                // Тип UDP пакета. Данный пакет содержит капсулы.
+                packet[udp.Header.DATA_TYPE_INDEX] = _packetCapsuleType;
+
+                // Добавим пакет в массив.
+                _packets[_packetsCount] = packet;
+                // Укажим текущюю длину данного пакета.
+                _packetsLength[_packetsCount++] = udp.Header.LENGTH;
+            }
+
+            // Присваиваем капсуле ID.
+            capsule[Capsule.Header.ID_INDEX_1b]
+                = (byte)(_capsuleID >> 8);
+            capsule[Capsule.Header.ID_INDEX_2b]
+                = (byte)_capsuleID;
+
+            if (_acknoledgmentsLength + 1 == MAX_ACK_LENGTH)
+            {
+                Destroy.Invoke("Превышено максимально возможноe количесво " +
+                    "ожидаемых подтверждений доставки капусл.");
+
+                return;
+            }
+
+            // Добавляем ID капсулы в массив ACK.
+            _acknoledgments[_acknoledgmentsLength++]
+                = _capsuleID;
+
+            // Записываем в пакет нашу капсулу.
+            // 1) Получаем крайний байт с которого начнется запись.
+            int startIndexInPacket = _packetsLength[packetIndex];
+
+            // 2) Записываем расположение капсулы.
+            _capsulesInformation[_capsulesInformationCount++] = new int[]
+            {
+                _capsuleID,
+                packetIndex,
+                startIndexInPacket,
+                capsule.Length
+            };
+
+            for (int p = 0; p < capsule.Length; p++)
+            {
+                _packets[packetIndex][startIndexInPacket++] = capsule[p];
+            }
+
+            // Запишим дляну пакета.
+            _packetsLength[packetIndex] = startIndexInPacket;
+
+            // Перезапишим длину пакета.
+            _packets[packetIndex][udp.Header.DATA_LENGTH_INDEX_1byte]
+                = (byte)(startIndexInPacket >> 8);
+            _packets[packetIndex][udp.Header.DATA_LENGTH_INDEX_2byte]
+                = (byte)startIndexInPacket;
+
+            if ((++_capsuleID) == ushort.MaxValue)
+                _capsuleID = 1;
+
+        }
+
         public void AddCapsules(byte[][] capsules)
         {
             if (_packetsCount == 0)
@@ -303,91 +397,7 @@ namespace server.component.clientManager.component
 
             for (int i = 0; i < capsules.Length; i++)
             {
-                // Сюда запишим интекс пакета в который будет
-                // записана текущая капсула. По умолчанию предпологаем
-                // что капсула не куда не влезла.
-                int packetIndex = _packetsCount;
-                // Проверяем имеется ли место в уже созданых
-                // пакетах для новой капсулы.
-                for (int u = 0; u < _packetsCount; u++)
-                {
-                    if ((_packetsLength[u] + capsules[i].Length)
-                        <= udp.Header.MAX_LENGTH)
-                    {
-                        packetIndex = u;
-                        break;
-                    }
-                }
-
-                // Капсула некуда не влезла, создаем 
-                // новый пакет.
-                if (packetIndex == _packetsCount)
-                {
-                    byte[] packet = new byte[udp.Header.MAX_LENGTH];
-
-                    // Формируем заголовок пакета.
-                    // Длина заголовка.
-                    packet[udp.Header.DATA_LENGTH_INDEX_1byte]
-                        = udp.Header.LENGTH >> 8;
-                    packet[udp.Header.DATA_LENGTH_INDEX_2byte]
-                        = udp.Header.LENGTH;
-
-                    // Тип UDP пакета. Данный пакет содержит капсулы.
-                    packet[udp.Header.DATA_TYPE_INDEX] = _packetCapsuleType;
-
-                    // Добавим пакет в массив.
-                    _packets[_packetsCount] = packet;
-                    // Укажим текущюю длину данного пакета.
-                    _packetsLength[_packetsCount++] = udp.Header.LENGTH;
-                }
-
-                // Присваиваем капсуле ID.
-                capsules[i][Capsule.Header.ID_INDEX_1b]
-                    = (byte)(_capsuleID >> 8);
-                capsules[i][Capsule.Header.ID_INDEX_2b]
-                    = (byte)_capsuleID;
-
-                if (_acknoledgmentsLength + 1 == MAX_ACK_LENGTH)
-                {
-                    Destroy.Invoke("Превышено максимально возможноe количесво " +
-                        "ожидаемых подтверждений доставки капусл.");
-
-                    return;
-                }
-
-                // Добавляем ID капсулы в массив ACK.
-                _acknoledgments[_acknoledgmentsLength++]
-                    = _capsuleID;
-
-                // Записываем в пакет нашу капсулу.
-                // 1) Получаем крайний байт с которого начнется запись.
-                int startIndexInPacket = _packetsLength[packetIndex];
-
-                // 2) Записываем расположение капсулы.
-                _capsulesInformation[_capsulesInformationCount++] = new int[]
-                {
-                    _capsuleID,
-                    packetIndex,
-                    startIndexInPacket,
-                    capsules[i].Length
-                };
-
-                for (int p = 0; p < capsules[i].Length; p++)
-                {
-                    _packets[packetIndex][startIndexInPacket++] = capsules[i][p];
-                }
-
-                // Запишим дляну пакета.
-                _packetsLength[packetIndex] = startIndexInPacket;
-
-                // Перезапишим длину пакета.
-                _packets[packetIndex][udp.Header.DATA_LENGTH_INDEX_1byte]
-                    = (byte)(startIndexInPacket >> 8);
-                _packets[packetIndex][udp.Header.DATA_LENGTH_INDEX_2byte]
-                    = (byte)startIndexInPacket;
-
-                if ((++_capsuleID) == ushort.MaxValue)
-                    _capsuleID = 1;
+                AddCapsule(capsules[i]);
             }
         }
 
@@ -396,7 +406,7 @@ namespace server.component.clientManager.component
         {
         }
 
-        void IReceiveUDPPackets.Receive(byte[] message)
+        void IReceivePackets.Receive(byte[] message)
         {
         }
 
@@ -405,7 +415,7 @@ namespace server.component.clientManager.component
             Console.WriteLine("UDP://" + info);
         }
 
-        public interface IReceiveUDPPackets
+        public interface IReceivePackets
         {
             /// <summary>
             /// Данный метод реализует прослушку UDP пакетов от клиeнта.
@@ -422,6 +432,10 @@ namespace server.component.clientManager.component
         private readonly int _port;
 
         protected bool _isRunning { private set; get; } = false;
+
+        // ID клиента в ROOM.
+        public int Index = -1;
+        public Action<int> DownMove;
 
         public DDD(Action<string> destroy, string address, int port)
             : base(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp)

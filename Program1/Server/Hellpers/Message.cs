@@ -275,7 +275,7 @@ namespace udp
             }
         }
 
-        public enum Type 
+        public enum Type
         {
             ClientToServerConnectionStep1 = 4,
             ServerToClientConnectionStep1 = 8,
@@ -337,6 +337,10 @@ public struct Capsule
         public const int MILL_INDEX_2b = MILL_INDEX_1b + 1;
 
 
+//PUSH -> []
+//ACK  <- []
+//FIN  -> [] // Будет высылать fin на каждый пришедший ACK.
+
         /// <summary>
         /// Подтверждение получения PSH сообщения.
         /// </summary>
@@ -346,16 +350,16 @@ public struct Capsule
 
             public const int TYPE = 0;
 
-            public const int LENGTH = Header.LENGTH + 2;
+            public const int LENGTH = 4 + 2;
 
             /// <summary>
             /// ID отправленого push сообщения.
             /// </summary>
-            public const int ACKNOLEDGMENT_MESSAGE_ID_1byte = TYPE_INDEX + 1;
+            public const int ACKNOLEDGMENT_ID_1byte = TYPE_INDEX + 1;
             /// <summary>
             /// ID отправленого push сообщения.
             /// </summary>
-            public const int ACKNOLEDGMENT_MESSAGE_ID_2byte = ACKNOLEDGMENT_MESSAGE_ID_1byte + 1;
+            public const int ACKNOLEDGMENT_ID_2byte = ACKNOLEDGMENT_ID_1byte + 1;
         }
 
         public struct FIN
@@ -364,7 +368,7 @@ public struct Capsule
 
             public const int TYPE = 1;
 
-            public const int LENGTH = Header.LENGTH + 0;
+            public const int LENGTH = 4 + 2;
 
             /// <summary>
             /// ID отправленого ack сообщения.
@@ -374,14 +378,6 @@ public struct Capsule
             /// ID отправленого ack сообщения.
             /// </summary>
             public const int FIN_ACKNOLEDGMENT_ID_2byte = FIN_ACKNOLEDGMENT_ID_1byte;
-            /// <summary>
-            /// ID отправленого ack сообщения.
-            /// </summary>
-            public const int FIN_ACKNOLEDGMENT_ID_3byte = FIN_ACKNOLEDGMENT_ID_2byte;
-            /// <summary>
-            /// ID отправленого ack сообщения.
-            /// </summary>
-            public const int FIN_ACKNOLEDGMENT_ID_4byte = FIN_ACKNOLEDGMENT_ID_3byte;
         }
 
         public struct PSH
@@ -415,6 +411,9 @@ public struct Capsule
                 // Значение position X
                 public const int INDEX_4b = INDEX_3b + 1;
             }
+
+            public struct NextYPosition {}
+            public struct NextPosition {}
 
             public enum Type
             {
