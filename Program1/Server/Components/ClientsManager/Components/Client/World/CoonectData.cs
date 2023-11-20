@@ -14,6 +14,7 @@ namespace server.component.clientManager.component
         public readonly TcpClient SSL; 
         public readonly TcpClient TCP;
 
+        public Action EndStarting;
 
         public ConnectData(Action<string> destroy, int clientID, int unitID,
             TcpClient ssl, TcpClient tcp, string udpAddress, int udpPort)
@@ -428,8 +429,8 @@ namespace server.component.clientManager.component
     public abstract class DDD : Socket
     {
         protected readonly Action<string> Destroy;
-        private readonly string _address;
-        private readonly int _port;
+        public readonly string UDPAddress;
+        public readonly int UDPPort;
 
         protected bool _isRunning { private set; get; } = false;
 
@@ -442,15 +443,15 @@ namespace server.component.clientManager.component
         {
             Destroy = destroy;
 
-            _address = address;
-            _port = port;
+            UDPAddress = address;
+            UDPPort = port;
         }
 
         public void Connect()
         {
             try
             {
-                Connect(_address, _port);
+                Connect(UDPAddress, UDPPort);
 
                 _isRunning = true;
             }

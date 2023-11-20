@@ -64,40 +64,27 @@ namespace server.component.clientManager.component
 
         private sealed class ClientObject : ClientController
         {
-            protected IInput<string, ConnectData> I_registerInRoom;
-            protected IInput<string, ConnectData> I_subscribeReceiveUDPPackets;
-            protected IInput<string> I_unsubscribeReceiveUDPPackets;
-
             void Construction()
             {
+                input_to(ref I_process, Header.Event.WORK_OBJECT, Starting);
+
                 add_event(Header.Event.PROCESSING_OF_SENDING_UDP_PACKETS,
                     10, Field.Process);
 
                 send_echo_2_0(ref I_subscribeReceiveUDPPackets, 
                     ReceiveUDPShell.BUS.Echo.SUBSCRIBE_TO_RECEIVE_THE_PACKETS)
-                        .output_to(() => 
-                        {
-                        }, 
-                        Header.Event.WORK_OBJECT);
+                        .output_to(Starting, Header.Event.WORK_OBJECT);
 
                 send_echo_1_0(ref I_unsubscribeReceiveUDPPackets, 
                     ReceiveUDPShell.BUS.Echo.UNSUBSCRIBE_TO_RECEIVE_THE_PACKETS)
-                        .output_to(() => 
-                        {
-                        }, 
-                        Header.Event.WORK_OBJECT);
+                        .output_to(Starting, Header.Event.WORK_OBJECT);
 
                 send_echo_2_0(ref I_registerInRoom,
                     WorldManager.BUS.Echo.REGISTER_IN_ROOM)
-                        .output_to(() =>
-                        {
-                        }, 
-                        Header.Event.WORK_OBJECT);
+                        .output_to(Starting, Header.Event.WORK_OBJECT);
             }
 
-            void Start()
-            {
-            }
+            void Start() => Starting();
 
             void Stop()
             {

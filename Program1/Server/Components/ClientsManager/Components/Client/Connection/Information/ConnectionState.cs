@@ -21,40 +21,34 @@ namespace server.component.clientManager.component.clientShell.information
         }
 
         private const string DESTROYING_ERROR = "Невозможно сменить состояние обьекта, как он уничтожается.";
-        private const string SET_ERROR = @"Назначить состояние {0} можно при условии что текущее состояние {1}." +
+        private const string ERROR = @"Назначить состояние {0} можно при условии что текущее состояние {1}." +
             @"В данный момент состояние {2}";
 
-        private readonly object _locker = new ();
+        private readonly object _locker = new();
 
         /// <summary>
         /// Нужно ли отписаться из списка ожидания TCP соединения.
         /// </summary>
         private bool _isUnsubscribeTCPConnection = false;
-        public bool IsUnsubscribeTCPConnection { 
-            private set 
-            { 
-                lock(_locker) _isUnsubscribeTCPConnection = value; 
-            }
-            get 
+        public bool IsUnsubscribeTCPConnection
+        {
+            get
             {
-                lock(_locker) return _isUnsubscribeTCPConnection;
+                lock (_locker) return _isUnsubscribeTCPConnection;
             }
-        }   
+        }
 
         /// <summary>
         /// Нужно ли отписаться из списка ожидания UDP соединения.
         /// </summary>
         private bool _isUnsubscribeUDPConnection = false;
-        public bool IsUnsubscribeUDPConnection { 
-            private set 
-            { 
-                lock(_locker) _isUnsubscribeUDPConnection = value; 
-            }
-            get 
+        public bool IsUnsubscribeUDPConnection
+        {
+            get
             {
-                lock(_locker) return _isUnsubscribeUDPConnection;
+                lock (_locker) return _isUnsubscribeUDPConnection;
             }
-        }   
+        }
 
         private bool _isDestroy = false;
 
@@ -65,7 +59,7 @@ namespace server.component.clientManager.component.clientShell.information
 
         public bool IsDestroy()
         {
-            lock(_locker) return _isDestroy;
+            lock (_locker) return _isDestroy;
         }
 
         public Enum CurrentState { private set; get; } = Enum.None;
@@ -100,17 +94,17 @@ namespace server.component.clientManager.component.clientShell.information
                     return false;
                 }
 
-                error = null;
-
                 if (CurrentState.HasFlag(Enum.None))
                 {
+                    error = null;
+
                     CurrentState = Enum.ReceiveLoginAndPassword;
 
                     return true;
                 }
                 else
                 {
-                    error = string.Format(SET_ERROR, Enum.ReceiveLoginAndPassword, Enum.None, CurrentState);
+                    error = string.Format(ERROR, Enum.ReceiveLoginAndPassword, Enum.None, CurrentState);
 
                     return false;
                 }
@@ -142,17 +136,18 @@ namespace server.component.clientManager.component.clientShell.information
                     return false;
                 }
 
-                error = null;
 
                 if (CurrentState.HasFlag(Enum.ReceiveLoginAndPassword))
                 {
+                    error = null;
+
                     CurrentState = Enum.Authorization;
 
                     return true;
                 }
                 else
                 {
-                    error = string.Format(SET_ERROR, Enum.Authorization, Enum.ReceiveLoginAndPassword,
+                    error = string.Format(ERROR, Enum.Authorization, Enum.ReceiveLoginAndPassword,
                         CurrentState);
 
                     return false;
@@ -187,19 +182,20 @@ namespace server.component.clientManager.component.clientShell.information
                     return false;
                 }
 
-                error = null;
 
                 if (CurrentState.HasFlag(Enum.Authorization))
                 {
+                    error = null;
+
                     CurrentState = Enum.SubscribeReceiveTCPConnection;
 
-                    IsUnsubscribeTCPConnection = true;
+                    _isUnsubscribeTCPConnection = true;
 
                     return true;
                 }
                 else
                 {
-                    error = string.Format(SET_ERROR, Enum.SubscribeReceiveTCPConnection, 
+                    error = string.Format(ERROR, Enum.SubscribeReceiveTCPConnection,
                         Enum.Authorization, CurrentState);
 
                     return false;
@@ -234,17 +230,17 @@ namespace server.component.clientManager.component.clientShell.information
                     return false;
                 }
 
-                error = null;
-
                 if (CurrentState.HasFlag(Enum.SubscribeReceiveTCPConnection))
                 {
+                    error = null;
+
                     CurrentState = Enum.CreatingTCPConnection;
 
                     return true;
                 }
                 else
                 {
-                    error = string.Format(SET_ERROR, Enum.CreatingTCPConnection, 
+                    error = string.Format(ERROR, Enum.CreatingTCPConnection,
                         Enum.SubscribeReceiveTCPConnection, CurrentState);
 
                     return false;
@@ -279,19 +275,19 @@ namespace server.component.clientManager.component.clientShell.information
                     return false;
                 }
 
-                error = null;
-
                 if (CurrentState.HasFlag(Enum.CreatingTCPConnection))
                 {
+                    error = null;
+
                     CurrentState = Enum.UnsubscribeReceiveTCPConnection;
 
-                    IsUnsubscribeTCPConnection = false;
+                    _isUnsubscribeTCPConnection = false;
 
                     return true;
                 }
                 else
                 {
-                    error = string.Format(SET_ERROR, Enum.UnsubscribeReceiveTCPConnection, 
+                    error = string.Format(ERROR, Enum.UnsubscribeReceiveTCPConnection,
                         Enum.CreatingTCPConnection, CurrentState);
 
                     return false;
@@ -320,11 +316,11 @@ namespace server.component.clientManager.component.clientShell.information
         {
             lock (_locker)
             {
-                error = null;
-
                 if (CurrentState.HasFlag(Enum.UnsubscribeReceiveTCPConnection))
                 {
-                    IsUnsubscribeUDPConnection = true;
+                    error = null;
+
+                    _isUnsubscribeUDPConnection = true;
 
                     CurrentState = Enum.SubscribeReceiveFirstUDPPacket;
 
@@ -332,8 +328,8 @@ namespace server.component.clientManager.component.clientShell.information
                 }
                 else
                 {
-                    error = string.Format(SET_ERROR, Enum.SubscribeReceiveFirstUDPPacket, 
-                        Enum.UnsubscribeReceiveTCPConnection,CurrentState);
+                    error = string.Format(ERROR, Enum.SubscribeReceiveFirstUDPPacket,
+                        Enum.UnsubscribeReceiveTCPConnection, CurrentState);
 
                     return false;
                 }
@@ -367,17 +363,17 @@ namespace server.component.clientManager.component.clientShell.information
                     return false;
                 }
 
-                error = null;
-
                 if (CurrentState.HasFlag(Enum.SubscribeReceiveFirstUDPPacket))
                 {
+                    error = null;
+
                     CurrentState = Enum.CreatingUDPConnection;
 
                     return true;
                 }
                 else
                 {
-                    error = string.Format(SET_ERROR, Enum.CreatingUDPConnection, 
+                    error = string.Format(ERROR, Enum.CreatingUDPConnection,
                         Enum.SubscribeReceiveFirstUDPPacket, CurrentState);
 
                     return false;
@@ -406,20 +402,20 @@ namespace server.component.clientManager.component.clientShell.information
         {
             lock (_locker)
             {
-                error = null;
-
                 if (CurrentState.HasFlag(Enum.CreatingUDPConnection))
                 {
+                    error = null;
+
                     CurrentState = Enum.UnsubscribeReceiveFirstUDPPacket;
 
-                    IsUnsubscribeUDPConnection = false;
+                    _isUnsubscribeUDPConnection = false;
 
                     return true;
                 }
                 else
                 {
-                    error = string.Format(SET_ERROR, Enum.UnsubscribeReceiveFirstUDPPacket, 
-                        Enum.CreatingUDPConnection,CurrentState);
+                    error = string.Format(ERROR, Enum.UnsubscribeReceiveFirstUDPPacket,
+                        Enum.CreatingUDPConnection, CurrentState);
 
                     return false;
                 }
@@ -447,18 +443,18 @@ namespace server.component.clientManager.component.clientShell.information
         {
             lock (_locker)
             {
-                error = null;
-
                 if (CurrentState.HasFlag(Enum.UnsubscribeReceiveFirstUDPPacket))
                 {
+                    error = null;
+
                     CurrentState = Enum.Connected;
 
                     return true;
                 }
                 else
                 {
-                    error = string.Format(SET_ERROR, Enum.Connected, 
-                        Enum.UnsubscribeReceiveFirstUDPPacket,CurrentState);
+                    error = string.Format(ERROR, Enum.Connected,
+                        Enum.UnsubscribeReceiveFirstUDPPacket, CurrentState);
 
                     return false;
                 }
